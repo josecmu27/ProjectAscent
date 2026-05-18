@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "GameFramework/Character.h"
 #include "Logging/LogMacros.h"
+#include "HealthComponent.h"
 #include "ProjectAscentCharacter.generated.h"
 
 class USpringArmComponent;
@@ -55,6 +56,10 @@ protected:
 
 	/** Called for looking input */
 	void Look(const FInputActionValue& Value);
+
+	/**--- Actor Components ---*/
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+	UHealthComponent* HealthComponent;
 			
 
 protected:
