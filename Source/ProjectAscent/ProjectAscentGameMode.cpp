@@ -3,6 +3,7 @@
 #include "ProjectAscentGameMode.h"
 #include "ProjectAscentCharacter.h"
 #include "UObject/ConstructorHelpers.h"
+#include "ProjectAscentHUD.h"
 
 AProjectAscentGameMode::AProjectAscentGameMode()
 {
@@ -12,4 +13,12 @@ AProjectAscentGameMode::AProjectAscentGameMode()
 	{
 		DefaultPawnClass = PlayerPawnBPClass.Class;
 	}
+
+	static ConstructorHelpers::FClassFinder<AHUD> HUDBPClass(TEXT("/Game/ThirdPerson/Blueprints/BP_ProjectAscentHUD"));
+
+	if (HUDBPClass.Class != NULL)
+	{
+		HUDClass = HUDBPClass.Class;
+	}
+
 }
