@@ -22,11 +22,19 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Health")
 	float const GetMaxHealth();
 
+	UFUNCTION(BlueprintPure, Category = "Health")
+	bool const IsDead();
+
+
 protected:
 	virtual void BeginPlay() override;
 
 private:
 	float CurHealth;
 	float MaxHealth;
+	bool bIsDead;
+
+	UFUNCTION()
+	void HandleTakeAnyDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatedBy, AActor* DamageCauser);
 		
 };
