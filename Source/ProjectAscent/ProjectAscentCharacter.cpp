@@ -18,6 +18,9 @@ DEFINE_LOG_CATEGORY(LogTemplateCharacter);
 
 AProjectAscentCharacter::AProjectAscentCharacter()
 {
+	PrimaryActorTick.bCanEverTick = true;
+
+
 	// Set size for collision capsule
 	GetCapsuleComponent()->InitCapsuleSize(42.f, 96.0f);
 		
@@ -54,6 +57,26 @@ AProjectAscentCharacter::AProjectAscentCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
+	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
+
+	WeaponSocketName = "ik_hand_r";
+	WeaponMesh = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("WeaponMesh"));
+	WeaponMesh->SetupAttachment(GetMesh(), WeaponSocketName);
+
+	// ADS Default Values
+	HipFireArmLength = 400.0f;
+	AimArmLength = 200.0f;
+	HipFireFOV = 90.0f;
+	AimFOV = 60.0f;
+	AimInterpSpeed = 10.0f;
+	AimSocketOffset = FVector(0.0f, 80.0f, 20.0f);
+	HipSocketOffset = FVector(0.0f, 0.0f, 0.0f);
+
+	// Movement Default Values
+	AimWalkSpeed = 200.0f;
+	BaseWalkSpeed = 500.0f;
+
+	bIsAiming = false;
 
 }
 
@@ -61,10 +84,36 @@ void AProjectAscentCharacter::BeginPlay()
 {
 	// Call the base class  
 	Super::BeginPlay();
+
+	WeaponMesh->SetupAttachment(GetMesh(), WeaponSocketName);
+
+	if (IsValid(WeaponComponent))
+	{
+		WeaponComponent->OnReloadStarted.AddDynamic(this, &AProjectAscentCharacter::HandleReloadStarted);
+	}
 }
 
-//////////////////////////////////////////////////////////////////////////
-// Input
+void AProjectAscentCharacter::Tick(float DeltaTime)
+{
+	Super::Tick(DeltaTime);
+
+	float CurArmLength = CameraBoom->TargetArmLength;
+	float TargetArmLength = (IsAiming()) ? AimArmLength : HipFireArmLength;
+
+	float CurFOV = FollowCamera->FieldOfView;
+	float TargetFOV = (IsAiming()) ? AimFOV : HipFireFOV;
+
+	FVector CurSocketOffset = CameraBoom->SocketOffset;
+	FVector TargetSocketOffset = (IsAiming()) ? AimSocketOffset : HipSocketOffset;
+
+	CameraBoom->TargetArmLength = FMath::FInterpTo(CurArmLength, TargetArmLength, DeltaTime, AimInterpSpeed);
+	FollowCamera->SetFieldOfView(FMath::FInterpTo(CurFOV, TargetFOV, DeltaTime, AimInterpSpeed));
+	CameraBoom->SocketOffset = FMath::VInterpTo(CurSocketOffset, TargetSocketOffset, DeltaTime, AimInterpSpeed);
+}
+
+  ////////////////////////////////////////////////////////////////////
+ //							 Input                                 // 
+////////////////////////////////////////////////////////////////////
 
 void AProjectAscentCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
 {
@@ -89,6 +138,16 @@ void AProjectAscentCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 
 		// Looking
 		EnhancedInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &AProjectAscentCharacter::Look);
+
+		// Aiming
+		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &AProjectAscentCharacter::OnAimStarted);
+		EnhancedInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &AProjectAscentCharacter::OnAimEnded);
+
+		// Firing
+		EnhancedInputComponent->BindAction(FireAction, ETriggerEvent::Triggered, this, &AProjectAscentCharacter::OnFire);
+		
+		// Reloading
+		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Triggered, this, &AProjectAscentCharacter::OnReload);
 	}
 	else
 	{
@@ -130,4 +189,53 @@ void AProjectAscentCharacter::Look(const FInputActionValue& Value)
 		AddControllerYawInput(LookAxisVector.X);
 		AddControllerPitchInput(LookAxisVector.Y);
 	}
+}
+
+void AProjectAscentCharacter::OnAimStarted(const FInputActionValue& Value)
+{
+	bIsAiming = true;
+	GetCharacterMovement()->MaxWalkSpeed = AimWalkSpeed;
+}
+
+void AProjectAscentCharacter::OnAimEnded(const FInputActionValue& Value)
+{
+	bIsAiming = false;
+	GetCharacterMovement()->MaxWalkSpeed = BaseWalkSpeed;
+}
+
+
+void AProjectAscentCharacter::OnFire(const FInputActionValue& Value)
+{
+	if (!IsValid(WeaponComponent) || !IsValid(FollowCamera))
+	{
+		return;
+	}
+
+	FVector TraceStart = FollowCamera->GetComponentLocation();
+	FVector TraceEnd = TraceStart + (FollowCamera->GetForwardVector() * WeaponComponent->GetWeaponRange());
+	WeaponComponent->Fire(TraceStart, TraceEnd);
+}
+
+void AProjectAscentCharacter::OnReload(const FInputActionValue& Value)
+{
+	if (!IsValid(WeaponComponent))
+	{
+		return;
+	}
+
+	WeaponComponent->Reload();
+}
+
+bool AProjectAscentCharacter::IsAiming() const
+{
+	return bIsAiming;
+}
+
+
+////////////////////////////////////////////////////////////////////
+//							Delegate Handlers                     // 
+////////////////////////////////////////////////////////////////////
+void AProjectAscentCharacter::HandleReloadStarted()
+{
+	PlayAnimMontage(ReloadMontage);
 }
