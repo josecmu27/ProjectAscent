@@ -110,6 +110,25 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
     FVector HipSocketOffset;
 
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
+    float RecoilAmount;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
+    float CurrentRecoil;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
+    float RecoilRecoverySpeed;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
+    float RecoilKickSpeed;
+
+    float RecoilTimer;
+
+    float TargetRecoil;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
+    float RecoilRecoveryDelay;
+
     /* Movement Settings*/
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement", meta = (AllowPrivateAccess = "true"))
     float AimWalkSpeed;
@@ -131,6 +150,9 @@ private:
     /* Delegate Handlers*/
     UFUNCTION()
     void HandleReloadStarted();
+
+    UFUNCTION()
+    void HandleFireStarted();
 
 };
 

@@ -18,6 +18,7 @@ enum class EWeaponState : uint8
 };
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReloadStarted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFireStarted);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTASCENT_API UWeaponComponent : public UActorComponent, public IEquippable
@@ -51,6 +52,9 @@ public:
 
 	UPROPERTY(BlueprintAssignable, Category = "Weapon")
 	FOnReloadStarted OnReloadStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Weapon")
+	FOnFireStarted OnFireStarted;
 
 protected:
 	// Called when the game starts

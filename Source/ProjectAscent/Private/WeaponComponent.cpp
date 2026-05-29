@@ -75,6 +75,9 @@ void UWeaponComponent::Fire(FVector TraceStart, FVector TraceEnd)
 	CollisionParams.AddIgnoredActor(GetOwner());
 
 	bool bHit = World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Weapon, CollisionParams);
+
+	// Broadcast Delegate
+	OnFireStarted.Broadcast();
 	
 	// DEBUG
 	DrawDebugLine(World, TraceStart, TraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);

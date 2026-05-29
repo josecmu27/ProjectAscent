@@ -71,6 +71,12 @@ AProjectAscentCharacter::AProjectAscentCharacter()
 	AimInterpSpeed = 10.0f;
 	AimSocketOffset = FVector(0.0f, 80.0f, 20.0f);
 	HipSocketOffset = FVector(0.0f, 0.0f, 0.0f);
+	RecoilAmount = 0.5f;
+	RecoilTimer = 0.0f;
+	CurrentRecoil = 0.0f;
+	RecoilRecoverySpeed = 5.0f;
+	RecoilKickSpeed = 10.0f;
+	RecoilRecoveryDelay = 0.15f;
 
 	// Movement Default Values
 	AimWalkSpeed = 200.0f;
@@ -90,6 +96,7 @@ void AProjectAscentCharacter::BeginPlay()
 	if (IsValid(WeaponComponent))
 	{
 		WeaponComponent->OnReloadStarted.AddDynamic(this, &AProjectAscentCharacter::HandleReloadStarted);
+		WeaponComponent->OnFireStarted.AddDynamic(this, &AProjectAscentCharacter::HandleFireStarted);
 	}
 }
 
@@ -109,6 +116,23 @@ void AProjectAscentCharacter::Tick(float DeltaTime)
 	CameraBoom->TargetArmLength = FMath::FInterpTo(CurArmLength, TargetArmLength, DeltaTime, AimInterpSpeed);
 	FollowCamera->SetFieldOfView(FMath::FInterpTo(CurFOV, TargetFOV, DeltaTime, AimInterpSpeed));
 	CameraBoom->SocketOffset = FMath::VInterpTo(CurSocketOffset, TargetSocketOffset, DeltaTime, AimInterpSpeed);
+	
+	// Move camera back down after recoil effects
+	if (RecoilTimer > 0.0f)
+	{
+		RecoilTimer -= DeltaTime;
+		float PreviousRecoil = CurrentRecoil;
+		CurrentRecoil = FMath::FInterpTo(CurrentRecoil, TargetRecoil , DeltaTime, RecoilKickSpeed);
+		AddControllerPitchInput(PreviousRecoil - CurrentRecoil);
+	}
+	else
+	{
+		float PreviousRecoil = CurrentRecoil;
+		CurrentRecoil = FMath::FInterpTo(CurrentRecoil, 0, DeltaTime, RecoilRecoverySpeed);
+		AddControllerPitchInput(PreviousRecoil - CurrentRecoil);
+		TargetRecoil = 0.0f;
+		RecoilTimer = 0.0f;
+	}
 }
 
   ////////////////////////////////////////////////////////////////////
@@ -238,4 +262,10 @@ bool AProjectAscentCharacter::IsAiming() const
 void AProjectAscentCharacter::HandleReloadStarted()
 {
 	PlayAnimMontage(ReloadMontage);
+}
+
+void AProjectAscentCharacter::HandleFireStarted()
+{
+	TargetRecoil = CurrentRecoil + RecoilAmount;
+	RecoilTimer = RecoilRecoveryDelay;
 }
