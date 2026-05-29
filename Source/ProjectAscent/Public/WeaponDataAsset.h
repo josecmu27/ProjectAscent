@@ -17,7 +17,7 @@ class PROJECTASCENT_API UWeaponDataAsset : public UDataAsset
 public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Stats")
-	int32 Damage;
+	float Damage;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Stats")
 	int32 MagazineSize;
@@ -29,7 +29,7 @@ public:
 	float FireRate;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Stats")
-	float MaxRange;
+	float Range;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapon Stats")
 	FText Name;
