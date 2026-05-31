@@ -40,6 +40,7 @@ void UHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, c
 	if (CurHealth <= 0.0f)
 	{
 		bIsDead = true;
+		OnDeath.Broadcast();
 	}
 }
 
