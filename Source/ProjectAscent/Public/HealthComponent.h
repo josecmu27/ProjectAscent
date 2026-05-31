@@ -6,6 +6,7 @@
 #include "Components/ActorComponent.h"
 #include "HealthComponent.generated.h"
 
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeath);
 
 UCLASS( ClassGroup=(ProjectAscenet), meta=(BlueprintSpawnableComponent) )
 class PROJECTASCENT_API UHealthComponent : public UActorComponent
@@ -24,6 +25,9 @@ public:
 
 	UFUNCTION(BlueprintPure, Category = "Health")
 	bool const IsDead();
+
+	UPROPERTY(BlueprintAssignable, Category = "Weapon")
+	FOnDeath OnDeath;
 
 
 protected:
