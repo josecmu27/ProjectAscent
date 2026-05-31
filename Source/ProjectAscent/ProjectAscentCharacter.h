@@ -54,9 +54,6 @@ protected:
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UWeaponComponent* WeaponComponent;
 
-    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
-    UStaticMeshComponent* WeaponMesh;
-
 private:
 
     /* Camera Components*/
@@ -137,8 +134,6 @@ private:
     float BaseWalkSpeed;
 
     /* Weapon Settings*/
-    UPROPERTY(EditDefaultsOnly, Category = "Weapon", meta = (AllowPrivateAccess = "true"))
-    FName WeaponSocketName;
 
     /* Animation */
     UPROPERTY(EditDefaultsOnly, Category = "Animation")
