@@ -23,7 +23,7 @@ public:
 	UFUNCTION(BlueprintPure, Category = "Health")
 	float GetMaxHealth() const;
 
-	UFUNCTION(sBlueprintPure, Category = "Health")
+	UFUNCTION(BlueprintPure, Category = "Health")
 	bool IsDead() const;
 
 	UPROPERTY(BlueprintAssignable, Category = "Health")
