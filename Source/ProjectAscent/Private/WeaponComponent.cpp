@@ -78,9 +78,7 @@ void UWeaponComponent::Fire(FVector TraceStart, FVector TraceEnd)
 
 	// Broadcast Delegate
 	OnFireStarted.Broadcast();
-	
-	// DEBUG
-	DrawDebugLine(World, TraceStart, TraceEnd, FColor::Red, false, 1.0f, 0, 1.0f);
+
 
 	// Check if Line Trace hits and apply damage to it via unreal's damage system
 	if (bHit && Hit.GetActor())
@@ -95,14 +93,13 @@ void UWeaponComponent::Fire(FVector TraceStart, FVector TraceEnd)
 		AController* InstigatorController = GetOwner()->GetInstigatorController();
 
 		HitActor->TakeDamage(WeaponData->Damage, PointDamageEvent, InstigatorController, GetOwner());
+		
+		OnWeaponHit.Broadcast(Hit);
 	}
 
 	// Decrease Current Bullet Count
 	CurBullets = FMath::Max(CurBullets - 1, 0);
 	
-	// DEBUG
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow,
-		FString::Printf(TEXT("Current Bullets: %d"), CurBullets));
 
 	CurState = (CurBullets == 0) ? EWeaponState::Empty : EWeaponState::Idle;
 
@@ -124,13 +121,6 @@ void UWeaponComponent::Reload()
 		return;
 	}
 
-	// DEBUG
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow,
-		FString::Printf(TEXT("Before Reload: Current Bullets: %d"), CurBullets));
-
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow,
-		FString::Printf(TEXT("Before Reload: Reserve Bullets: %d"), ReserveBullets));
-
 	UWorld* World = GetWorld();
 
 	if (!IsValid(World) || !IsValid(WeaponData))
@@ -149,13 +139,6 @@ void UWeaponComponent::Reload()
 	ReserveBullets -= ReloadedBullets;
 
 	OnReloadStarted.Broadcast();
-
-	// DEBUG
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow,
-		FString::Printf(TEXT("After Reload: Current Bullets: %d"), CurBullets));
-
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Yellow,
-		FString::Printf(TEXT(" After Reload: Reserve Bullets: %d"), ReserveBullets));
 
 
 	World->GetTimerManager().SetTimer(ReloadTimerHandle, this, &UWeaponComponent::OnReloadTimerExpired, WeaponData->ReloadTime, false);
