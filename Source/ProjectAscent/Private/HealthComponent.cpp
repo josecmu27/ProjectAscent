@@ -18,6 +18,8 @@ void UHealthComponent::BeginPlay()
 
 	AActor* Owner = GetOwner();
 
+	CurHealth = MaxHealth;
+
 	if (!IsValid(Owner))
 	{
 		return;
@@ -44,17 +46,17 @@ void UHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, c
 	}
 }
 
-float const UHealthComponent::GetCurHealth()
+float UHealthComponent::GetCurHealth() const
 {
 	return CurHealth;
 }
 
-float const UHealthComponent::GetMaxHealth()
+float UHealthComponent::GetMaxHealth() const
 {
 	return MaxHealth;
 }
 
-bool const UHealthComponent::IsDead()
+bool UHealthComponent::IsDead() const
 {
 	return bIsDead;
 }

@@ -8,7 +8,7 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnDeath);
 
-UCLASS( ClassGroup=(ProjectAscenet), meta=(BlueprintSpawnableComponent) )
+UCLASS( ClassGroup=(Custom), meta=(BlueprintSpawnableComponent) )
 class PROJECTASCENT_API UHealthComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -18,15 +18,15 @@ public:
 	UHealthComponent();
 
 	UFUNCTION(BlueprintPure, Category = "Health")
-	float const GetCurHealth();
+	float GetCurHealth() const;
 
 	UFUNCTION(BlueprintPure, Category = "Health")
-	float const GetMaxHealth();
+	float GetMaxHealth() const;
 
-	UFUNCTION(BlueprintPure, Category = "Health")
-	bool const IsDead();
+	UFUNCTION(sBlueprintPure, Category = "Health")
+	bool IsDead() const;
 
-	UPROPERTY(BlueprintAssignable, Category = "Weapon")
+	UPROPERTY(BlueprintAssignable, Category = "Health")
 	FOnDeath OnDeath;
 
 
@@ -34,8 +34,13 @@ protected:
 	virtual void BeginPlay() override;
 
 private:
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health Settings", meta = (AllowPrivateAccess = "true"))
 	float CurHealth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health Settings", meta = (AllowPrivateAccess = "true"))
 	float MaxHealth;
+
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Health Settings", meta = (AllowPrivateAccess = "true"))
 	bool bIsDead;
 
 	UFUNCTION()
