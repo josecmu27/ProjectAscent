@@ -7,6 +7,7 @@
 #include "Logging/LogMacros.h"
 #include "HealthComponent.h"
 #include "WeaponComponent.h"
+#include "GrapplingHookComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "ProjectAscentCharacter.generated.h"
 
@@ -46,6 +47,8 @@ protected:
     void OnAimEnded(const FInputActionValue& Value);
     void OnFire(const FInputActionValue& Value);
     void OnReload(const FInputActionValue& Value);
+    void OnGrapple(const FInputActionValue& Value);
+    void OnUngrapple(const FInputActionValue& Value);
 
     /* Components */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -53,6 +56,9 @@ protected:
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UWeaponComponent* WeaponComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UGrapplingHookComponent* GrapplingHookComponent;
 
 private:
 
@@ -84,6 +90,12 @@ private:
 
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
     UInputAction* ReloadAction;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+    UInputAction* GrappleAction;
+
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+    UInputAction* UngrappleAction;
 
     /* ADS Settings*/
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
