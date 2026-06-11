@@ -59,6 +59,9 @@ public:
 	UFUNCTION(BlueprintCallable, Category = "Grappling Hook")
 	void UpdateHookRetracting(float DeltaTime);
 
+	UFUNCTION(BlueprintCallable, Category = "Grappling Hook")
+	void UpdateHookPulling(float DeltaTime);
+
 	UFUNCTION(BlueprintPure, Category = "Grappling Hook")
 	bool CanGrapple();
 
@@ -91,4 +94,7 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
 	FVector TargetLocation;
 		
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess = "true"))
+	AActor* PulledActor;
+
 };

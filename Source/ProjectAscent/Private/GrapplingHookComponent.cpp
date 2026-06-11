@@ -23,17 +23,7 @@ UGrapplingHookComponent::UGrapplingHookComponent()
 	OwnerCharacter = nullptr;
 	CurrentHitResult.Init();
 
-	/*CableComponent = CreateDefaultSubobject<UCableComponent>(TEXT("CableComponent"));*/
-
 	GrappleBeamComponent = CreateDefaultSubobject<UNiagaraComponent>(TEXT("GrappleBeamComponent"));
-
-	/*if (IsValid(CableComponent))
-	{
-		CableComponent->SetVisibility(false);
-		CableComponent->NumSegments = 1;
-		CableComponent->CableWidth = 2.0f;
-		CableComponent->CableLength = 0.0f;
-	}*/
 
 	if (IsValid(GrappleBeamComponent))
 	{
@@ -54,18 +44,6 @@ void UGrapplingHookComponent::BeginPlay()
 
 	if (!IsValid(GrapplingHookData)) return;
 
-	/*if (IsValid(CableComponent))
-	{
-		CableComponent->SetVisibility(false);
-		CableComponent->NumSegments = 1;
-		CableComponent->CableWidth = 2.0f;
-		CableComponent->CableLength = 0.0f;
-		CableComponent->bAttachStart = true;
-	}
-
-	CableComponent->DetachFromComponent(FDetachmentTransformRules::KeepWorldTransform);
-
-	CableComponent->AttachToComponent(OwnerCharacter->GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("Grapple_Socket"));*/
 
 	if (IsValid(GrappleBeamComponent))
 	{
@@ -88,9 +66,13 @@ void UGrapplingHookComponent::TickComponent(float DeltaTime, ELevelTick TickType
 	{
 		UpdateHookFlying(DeltaTime);
 	}
-	else if (CurrentState == EGrapplingState::Retracting) 
+	else if (CurrentState == EGrapplingState::Retracting) // Retracts Hook
 	{
 		UpdateHookRetracting(DeltaTime);
+	}
+	else if (CurrentState == EGrapplingState::Pulling)
+	{
+		UpdateHookPulling(DeltaTime);
 	}
 }
 
@@ -103,9 +85,6 @@ void UGrapplingHookComponent::UpdateHookFiring(float DeltaTime)
 	
 	GrappleBeamComponent->SetVariableVec3(FName("BeamStart"), HandLocation);
 	GrappleBeamComponent->SetVariableVec3(FName("BeamEnd"), CurrentBeamEnd);
-
-	// DEBUG
-	DrawDebugLine(GetWorld(), HandLocation, CurrentBeamEnd, FColor::Black, false, 0.0f, 0, 2.0f);
 
 	// Check if cable reached target
 	float DistanceToTarget = FVector::Dist(CurrentBeamEnd, TargetLocation);
@@ -163,8 +142,35 @@ void UGrapplingHookComponent::UpdateHookRetracting(float DeltaTime)
 		// Beam has reached back to the player
 		DisableBeam();
 		CurrentState = EGrapplingState::Idle;
+	}
+}
 
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Cable has reached back to the player"));
+void UGrapplingHookComponent::UpdateHookPulling(float DeltaTime)
+{
+	if (!IsValid(PulledActor))
+	{
+		CurrentState = EGrapplingState::Retracting;
+		return;
+	}
+
+	// Update pull target to current player location
+	FVector PlayerLocation = OwnerCharacter->GetActorLocation();
+	IGrappable::Execute_GrapplePull(PulledActor, GrapplingHookData->PropPullSpeed, PlayerLocation);
+
+	// Update cable end to pulled actor location
+	FVector HandLocation = OwnerCharacter->GetMesh()->GetSocketLocation(FName("Grapple_Socket"));
+	GrappleBeamComponent->SetVariableVec3(FName("BeamStart"), HandLocation);
+	GrappleBeamComponent->SetVariableVec3(FName("BeamEnd"), PulledActor->GetActorLocation());
+
+	// Check if actor reached player
+	float DistanceToPlayer = FVector::Dist(PulledActor->GetActorLocation(), PlayerLocation);
+	
+	if (DistanceToPlayer < GrapplingHookData->TargetDistanceThreshold)
+	{
+		DisableBeam();
+		IGrappable::Execute_GrapplePullCancel(PulledActor);
+		PulledActor = nullptr;
+		CurrentState = EGrapplingState::Idle;
 	}
 }
 
@@ -244,11 +250,8 @@ void UGrapplingHookComponent::ProcessHookHit()
 	{
 		// Retract hook
 		RetractHook();
-		GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Grapple Retracting"));
 		return;
 	}
-
-	GEngine->AddOnScreenDebugMessage(-1, 5.0f, FColor::Green, TEXT("Hit Something"));
 
 	OwnerCharacter->bUseControllerRotationYaw = false;
 	OwnerCharacter->GetCharacterMovement()->bOrientRotationToMovement = true;
@@ -259,8 +262,17 @@ void UGrapplingHookComponent::ProcessHookHit()
 	{
 		// Pull Actor (Prop / Enemy)
 		ACharacter* HitCharacter = Cast<ACharacter>(HitActor);
-		float Magnitude = HitCharacter ? GrapplingHookData->EnemyPullForce : GrapplingHookData->PropPullSpeed;
-		IGrappable::Execute_GrapplePull(HitActor, Magnitude, OwnerCharacter->GetActorLocation());
+
+		if (HitCharacter) // Pull Actor via impulse
+		{
+			IGrappable::Execute_GrapplePull(HitActor, GrapplingHookData->EnemyPullForce, OwnerCharacter->GetActorLocation());
+		}
+		else
+		{
+			PulledActor = HitActor;
+			CurrentState = EGrapplingState::Pulling;
+
+		}
 	}
 	else
 	{
