@@ -16,7 +16,7 @@ enum class EGrapplingState : uint8
 {
 	Idle	   UMETA(DisplayName = "Idle"),
 	Firing	   UMETA(DisplayName = "Firing"),
-	Flying	   UMETA(DisplayName = "Conected"),
+	Flying	   UMETA(DisplayName = "Flying"),
 	Retracting UMETA(DisplayName = "Retracting"),
 	Pulling	   UMETA(DisplayName = "Pulling")
 };
@@ -46,6 +46,9 @@ public:
 
 	UFUNCTION(BlueprintCallable, Category = "Grappling Hook")
 	void ProcessHookHit();
+
+	UFUNCTION(BlueprintPure, Category = "Grappling Hook")
+	EGrapplingState GetGrapplingState();
 
 
 	/* Tick Functions */

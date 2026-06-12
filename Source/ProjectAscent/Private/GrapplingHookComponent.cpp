@@ -299,3 +299,8 @@ float UGrapplingHookComponent::GetGrapplingHookRange()
 	return GrapplingHookData->MaxRange;
 }
 
+EGrapplingState UGrapplingHookComponent::GetGrapplingState()
+{
+	return CurrentState;
+}
+
