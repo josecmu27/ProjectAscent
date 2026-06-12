@@ -58,6 +58,7 @@ AProjectAscentCharacter::AProjectAscentCharacter()
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
+	GrapplingHookComponent = CreateDefaultSubobject<UGrapplingHookComponent>(TEXT("GrapplingHookComponent"));
 
 
 	// ADS Default Values
@@ -167,6 +168,10 @@ void AProjectAscentCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 		
 		// Reloading
 		EnhancedInputComponent->BindAction(ReloadAction, ETriggerEvent::Triggered, this, &AProjectAscentCharacter::OnReload);
+
+		// Grappling Hook
+		EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Started, this, &AProjectAscentCharacter::OnGrapple);
+		EnhancedInputComponent->BindAction(UngrappleAction, ETriggerEvent::Started, this, &AProjectAscentCharacter::OnUngrapple);
 	}
 	else
 	{
@@ -243,6 +248,22 @@ void AProjectAscentCharacter::OnReload(const FInputActionValue& Value)
 	}
 
 	WeaponComponent->Reload();
+}
+
+void AProjectAscentCharacter::OnGrapple(const FInputActionValue& Value)
+{
+	if (!IsValid(GrapplingHookComponent)) return;
+
+	FVector TraceStart = FollowCamera->GetComponentLocation();
+	FVector TraceEnd = TraceStart + (FollowCamera->GetForwardVector() * GrapplingHookComponent->GetGrapplingHookRange());
+	GrapplingHookComponent->FireHook(TraceStart, TraceEnd);
+}
+
+void AProjectAscentCharacter::OnUngrapple(const FInputActionValue& Value)
+{ 
+	if (!IsValid(GrapplingHookComponent)) return;
+
+	GrapplingHookComponent->RetractHook();
 }
 
 bool AProjectAscentCharacter::IsAiming() const
