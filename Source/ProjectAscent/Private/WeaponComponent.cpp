@@ -193,12 +193,7 @@ float UWeaponComponent::GetWeaponRange() const
 	return WeaponData->Range;
 }
 
-bool UWeaponComponent::IsFiring() const
+EWeaponState UWeaponComponent::GetWeaponState() const
 {
-	return CurState == EWeaponState::Firing;
-}
-
-bool UWeaponComponent::IsReloading() const
-{
-	return CurState == EWeaponState::Reloading;
+	return CurState;
 }

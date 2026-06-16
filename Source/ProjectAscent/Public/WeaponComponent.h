@@ -40,10 +40,7 @@ public:
 	float GetWeaponRange() const;
 
 	UFUNCTION(BlueprintPure, Category = "Weapon")
-	bool IsFiring() const;
-
-	UFUNCTION(BlueprintPure, Category = "Weapon")
-	bool IsReloading() const;
+	EWeaponState GetWeaponState() const;
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void Fire(FVector TraceStart, FVector TraceEnd);
