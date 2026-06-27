@@ -17,6 +17,7 @@ class PROJECTASCENT_API UEnemyDataAsset : public UDataAsset
 
 public:
 
+	/* Perception */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float DetectionSightRadius;
 
@@ -25,6 +26,9 @@ public:
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float LoseSightOffset;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
+	float AlertSphereRadius;
 
 	/* Movement */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
