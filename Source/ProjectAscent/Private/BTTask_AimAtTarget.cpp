@@ -3,6 +3,7 @@
 
 #include "BTTask_AimAtTarget.h"
 #include "AIController.h"
+#include "EnemyAIController.h"
 #include "BehaviorTree/BlackboardComponent.h"
 #include "EnemyBase.h"
 
@@ -25,6 +26,16 @@ EBTNodeResult::Type UBTTask_AimAtTarget::ExecuteTask(UBehaviorTreeComponent& Own
 
 }
 
+/*
+* @brief Continuously rotates Enemy AI's body (yaw) towards the target actor and updates its
+*        AimRotation (used in the Enemy Animation Blueprint and the trace direction for trace attacks). 
+*        Runs indefinitely as part of a nested Parallel alongside the Strafe task, it will 
+*        only stop via AbortTask when Combat Sequence aborts.
+* 
+* @param[in] OwnerComp Behavior Tree component running this task
+* @param[in] NodeMemory Per-instance memory block (unused in this task)
+* @param[in] DeltaSeconds Time since last tick
+*/
 void UBTTask_AimAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory, float DeltaSeconds)
 {  
     UBlackboardComponent* BBComponent = OwnerComp.GetBlackboardComponent();
@@ -33,26 +44,23 @@ void UBTTask_AimAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Nod
     AEnemyBase* Enemy = Cast<AEnemyBase>(OwnerComp.GetAIOwner()->GetPawn());
     AActor* TargetActor = Cast<AActor>(BBComponent->GetValueAsObject(TargetActorKey.SelectedKeyName));
 
-    if (!IsValid(Enemy) || !IsValid(TargetActor)) return;
-    
-    // Aim at player
-    FRotator CurrentRotation = Enemy->GetActorRotation();
-    FRotator TargetRotation = (TargetActor->GetActorLocation() - Enemy->GetActorLocation()).Rotation();
-    Enemy->SetActorRotation(FMath::RInterpTo(CurrentRotation, TargetRotation, DeltaSeconds, Enemy->GetDataAsset()->RotationSpeed));
-
-    // Check if aim direction is closely alligned to the player 
-    FVector CurrentForward = Enemy->GetActorForwardVector();
-    FVector DesiredForward = (TargetActor->GetActorLocation() - Enemy->GetActorLocation()).GetSafeNormal();
-    
-    float DotProduct = FVector::DotProduct(CurrentForward, DesiredForward);
-    float ThresholdDot = FMath::Cos(FMath::DegreesToRadians(Enemy->GetDataAsset()->AlignmentThreshold));
+    if (!IsValid(Enemy) || !IsValid(TargetActor) || !IsValid(Enemy->GetDataAsset())) return;
 
     if (DotProduct >= ThresholdDot)
     {
         FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
     }
 
+    // Rotate the whole body horizontally (yaw) toward target
+    FRotator CurrentBodyRotation = Enemy->GetActorRotation();
+    FRotator TargetBodyRotation = FRotator(0.0f, TargetRotation.Yaw, 0.0f);
+    FRotator NewBodyRotation = FMath::RInterpTo(CurrentBodyRotation, TargetBodyRotation, DeltaSeconds, RotationSpeed);
+    
+    Enemy->SetActorRotation(NewBodyRotation);
 
+    // Store full interpolated rotation (pitch + yaw) for Animation Blueprint for spine (upper body)
+    // Final full rotation used as trace direction in the Attack task
+    Enemy->AimRotation = FMath::RInterpTo(Enemy->AimRotation, TargetRotation, DeltaSeconds, Enemy->GetDataAsset()->RotationSpeed);
 }
 
 EBTNodeResult::Type UBTTask_AimAtTarget::AbortTask(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory)
