@@ -11,9 +11,11 @@ UBTDecorator_CompareDistance::UBTDecorator_CompareDistance()
 
 }
 
-/*
- * @brief determines if 
+/**
+ * @brief determines if TargetActor is within max distance of Origin Actor
  *
+ * @param[in] OwnerComp Behavior Tree component running this task
+ * @param[in] NodeMemory Per-instance memory block (unused in this task)
  */
 bool UBTDecorator_CompareDistance::CalculateRawConditionValue(UBehaviorTreeComponent& OwnerComp, uint8* NodeMemory) const
 {
