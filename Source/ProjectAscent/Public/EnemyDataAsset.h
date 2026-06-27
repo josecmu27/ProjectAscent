@@ -16,18 +16,15 @@ class PROJECTASCENT_API UEnemyDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
-	/* Combat */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
-	float AttackRange;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
 	float DetectionSightRadius;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
-	float LoseSightRadius; // should be higher than detection radius
+	float CombatSightRadius;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
-	float AlignmentThreshold;
+	float LoseSightOffset;
 
 	/* Movement */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
@@ -40,14 +37,13 @@ public:
 	float ChaseSpeed;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
+	float StrafeSpeed;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	float RotationSpeed;
 
-	/* Attack */
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
-	float ThrowableCooldown;
-
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Attack")
-	float ThrowableThrowRange;
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = Movement)
+	float StrafeDirectionChangeInterval;
 
 	/* General */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "General")
