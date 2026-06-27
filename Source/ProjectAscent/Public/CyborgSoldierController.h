@@ -17,7 +17,11 @@ class PROJECTASCENT_API ACyborgSoldierController : public AEnemyAIController
 protected:
     virtual void HandlePlayerLost(FVector LastLocation) override;
 
+    virtual void HandlePlayerSeen(AActor* Player) override;
+
 private:
-    void AlertNearbySoldiers(FVector LastLocation);
+    void AlertAllSoldiers(AActor* Player);
+
+    void TellNearbySoldiersToInvestigate(FVector LastLocation);
 
 };

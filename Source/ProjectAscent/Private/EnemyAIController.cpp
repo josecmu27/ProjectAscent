@@ -60,10 +60,10 @@ void AEnemyAIController::HandlePerceptionUpdated(AActor* Actor, FAIStimulus Stim
     if (Stimulus.WasSuccessfullySensed())
     {
         BBComponent->SetValueAsBool(FName("bCanSeePlayer"), true);
-        BBComponent->SetValueAsVector(FName("CurrentPlayerLocation"), Actor->GetActorLocation());
         BBComponent->SetValueAsObject(FName("TargetActor"), Actor);
 
         ExpandSightRadius();
+        HandlePlayerSeen(Actor);
     }
     else
     {
@@ -74,6 +74,18 @@ void AEnemyAIController::HandlePerceptionUpdated(AActor* Actor, FAIStimulus Stim
         HandlePlayerLost(Actor->GetActorLocation());
     }
 }
+
+/**
+ * @brief Virtual hook called when sight of the player is seen. Override for 
+ *        specific enemy reactions.
+ *
+ * @param[in] LastLocation The last location where the player has been seen
+ */
+void AEnemyAIController::HandlePlayerSeen(AActor* Player)
+{
+
+}
+
 
 /**
  * @brief Virtual hook called when sight of the player is lost. Base implementation

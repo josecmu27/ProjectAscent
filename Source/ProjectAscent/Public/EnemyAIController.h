@@ -37,7 +37,11 @@ protected:
 	virtual void HandlePerceptionUpdated(AActor* Actor, FAIStimulus Stimulus);
 
 	UFUNCTION()
+	virtual void HandlePlayerSeen(AActor* Player);
+
+	UFUNCTION()
 	virtual void HandlePlayerLost(FVector LastLocation);
+
 
 	UPROPERTY()
 	UAISenseConfig_Sight* SightConfig;
