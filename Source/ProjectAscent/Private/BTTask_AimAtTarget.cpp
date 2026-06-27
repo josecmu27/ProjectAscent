@@ -46,10 +46,10 @@ void UBTTask_AimAtTarget::TickTask(UBehaviorTreeComponent& OwnerComp, uint8* Nod
 
     if (!IsValid(Enemy) || !IsValid(TargetActor) || !IsValid(Enemy->GetDataAsset())) return;
 
-    if (DotProduct >= ThresholdDot)
-    {
-        FinishLatentTask(OwnerComp, EBTNodeResult::Succeeded);
-    }
+    // Calculate direction and full rotation toward the target
+    FVector DirectionToTarget = TargetActor->GetActorLocation() - Enemy->GetActorLocation();
+    FRotator TargetRotation = DirectionToTarget.Rotation();
+    float RotationSpeed = Enemy->GetDataAsset()->RotationSpeed;
 
     // Rotate the whole body horizontally (yaw) toward target
     FRotator CurrentBodyRotation = Enemy->GetActorRotation();
