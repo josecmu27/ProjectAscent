@@ -7,6 +7,7 @@
 AEnemyBase::AEnemyBase()
 {
 	PrimaryActorTick.bCanEverTick = false;
+	AimRotation = FRotator::ZeroRotator;
 
     HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
 

@@ -39,6 +39,9 @@ public:
 
 	virtual void OnEnemyDeath_Implementation();
 
+	UPROPERTY(BlueprintReadOnly, Category = "Combat")
+	FRotator AimRotation;
+
 
 protected:
 	// Called when the game starts or when spawned
