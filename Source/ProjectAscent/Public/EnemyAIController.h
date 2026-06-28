@@ -46,6 +46,9 @@ protected:
 	UPROPERTY()
 	UAISenseConfig_Sight* SightConfig;
 
+	UPROPERTY()
+	class UAISenseConfig_Damage* DamageConfig;
+
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "AI")
 	UBehaviorTree* BehaviorTree;
 };

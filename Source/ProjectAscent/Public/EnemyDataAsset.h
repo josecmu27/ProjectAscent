@@ -35,7 +35,7 @@ public:
 	float PatrolSpeed;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
-	float InvestigationSpeed;
+	float InvestigateSpeed;
 
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Movement")
 	float ChaseSpeed;

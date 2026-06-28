@@ -36,6 +36,9 @@ EBTNodeResult::Type UBTTask_SetMovementSpeed::ExecuteTask(UBehaviorTreeComponent
     case EMovementSpeedType::Strafe:
         Speed = Enemy->GetDataAsset()->StrafeSpeed;
         break;
+    case EMovementSpeedType::Investigate:
+        Speed = Enemy->GetDataAsset()->InvestigateSpeed;
+        break;
     }
 
     Enemy->GetCharacterMovement()->MaxWalkSpeed = Speed;

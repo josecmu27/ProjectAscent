@@ -3,6 +3,8 @@
 
 #include "EnemyAIController.h"
 #include "Kismet/GameplayStatics.h"
+#include "Perception/AISense_Damage.h"
+#include "Perception/AISenseConfig_Damage.h"
 
 AEnemyAIController::AEnemyAIController()
 {
@@ -13,6 +15,9 @@ AEnemyAIController::AEnemyAIController()
 
     GetPerceptionComponent()->ConfigureSense(*SightConfig);
     GetPerceptionComponent()->SetDominantSense(SightConfig->GetSenseImplementation());
+
+    DamageConfig = CreateDefaultSubobject<UAISenseConfig_Damage>(TEXT("DamageConfig"));
+    GetPerceptionComponent()->ConfigureSense(*DamageConfig);
 
     GetPerceptionComponent()->OnTargetPerceptionUpdated.AddDynamic(this, &AEnemyAIController::HandlePerceptionUpdated);
 }
@@ -42,7 +47,8 @@ void AEnemyAIController::OnPossess(APawn* InPawn)
 /**
  * @brief Bound to AIPerceptionComponent::OnTargetPerceptionUpdated. Updates Blackboard
  *        keys when sight of the player is gained or lost, and triggers side effects such as
- *        expanding/reseting combat sight radius, and calling the virtual HandlePlayerLost hook
+ *        expanding/reseting combat sight radius, and calling the virtual HandlePlayerLost hook.
+ *        Also updates Blackboard keys when damage is received to investigate source location.
  * 
  * @param[in] Actor The actor whose perception status changed
  * @param[in] Stimulus Perception data for this update
@@ -53,9 +59,21 @@ void AEnemyAIController::HandlePerceptionUpdated(AActor* Actor, FAIStimulus Stim
     
     if (Actor != PlayerPawn) return;
 
+
     UBlackboardComponent* BBComponent = GetBlackboardComponent();
     
     if (!IsValid(BBComponent)) return;
+
+    bool bIsDamageStimulus = Stimulus.Type == UAISense::GetSenseID<UAISense_Damage>();
+
+    if (bIsDamageStimulus)
+    {
+        // Got hit without seeing the player, investigate the origin
+        BBComponent->SetValueAsVector("LastKnownPlayerLocation", Actor->GetActorLocation());
+        BBComponent->SetValueAsBool("bIsInvestigating", true);
+        return;
+    }
+
 
     if (Stimulus.WasSuccessfullySensed())
     {

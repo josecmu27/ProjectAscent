@@ -2,6 +2,8 @@
 
 
 #include "HealthComponent.h"
+#include "Perception/AIPerceptionSystem.h"
+#include "Perception/AISense_Damage.h"
 
 UHealthComponent::UHealthComponent()
 {
@@ -25,7 +27,6 @@ void UHealthComponent::BeginPlay()
 		return;
 	}
 
-
 	Owner->OnTakeAnyDamage.AddDynamic(this, &UHealthComponent::HandleTakeAnyDamage);
 }
 
@@ -39,11 +40,16 @@ void UHealthComponent::HandleTakeAnyDamage(AActor* DamagedActor, float Damage, c
 
 	CurHealth = FMath::Max(CurHealth - Damage, 0.0f);
 
+	// Report hit to perception so the AI can react even without line of sight
+	UAIPerceptionSystem::GetCurrent(GetWorld())->OnEvent(
+		FAIDamageEvent(DamagedActor, DamageCauser, Damage, DamagedActor->GetActorLocation()));
+
 	if (CurHealth <= 0.0f)
 	{
 		bIsDead = true;
 		OnDeath.Broadcast();
 	}
+
 }
 
 float UHealthComponent::GetCurHealth() const
