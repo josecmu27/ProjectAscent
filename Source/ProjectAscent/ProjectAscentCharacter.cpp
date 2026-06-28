@@ -64,8 +64,12 @@ AProjectAscentCharacter::AProjectAscentCharacter()
 	// ADS Default Values
 	HipFireArmLength = 400.0f;
 	AimArmLength = 200.0f;
+	CrouchArmOffset = -40.0f;
+	StandArmOffset = 0.0f;
+
 	HipFireFOV = 90.0f;
 	AimFOV = 60.0f;
+
 	AimInterpSpeed = 10.0f;
 	AimSocketOffset = FVector(0.0f, 80.0f, 20.0f);
 	HipSocketOffset = FVector(0.0f, 0.0f, 0.0f);
@@ -79,9 +83,11 @@ AProjectAscentCharacter::AProjectAscentCharacter()
 	// Movement Default Values
 	AimWalkSpeed = 200.0f;
 	BaseWalkSpeed = 500.0f;
-
 	bIsAiming = false;
 
+	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
+	GetCharacterMovement()->SetCrouchedHalfHeight(48.0f);
+	GetCharacterMovement()->bCanWalkOffLedgesWhenCrouching = true;
 }
 
 void AProjectAscentCharacter::BeginPlay()
@@ -94,6 +100,7 @@ void AProjectAscentCharacter::BeginPlay()
 		WeaponComponent->OnReloadStarted.AddDynamic(this, &AProjectAscentCharacter::HandleReloadStarted);
 		WeaponComponent->OnFireStarted.AddDynamic(this, &AProjectAscentCharacter::HandleFireStarted);
 	}
+
 }
 
 void AProjectAscentCharacter::Tick(float DeltaTime)
@@ -102,12 +109,14 @@ void AProjectAscentCharacter::Tick(float DeltaTime)
 
 	float CurArmLength = CameraBoom->TargetArmLength;
 	float TargetArmLength = (IsAiming()) ? AimArmLength : HipFireArmLength;
+	float TargetSocketOffsetZ = (GetCharacterMovement() && GetCharacterMovement()->IsCrouching()) ? CrouchArmOffset : StandArmOffset;
 
 	float CurFOV = FollowCamera->FieldOfView;
 	float TargetFOV = (IsAiming()) ? AimFOV : HipFireFOV;
 
 	FVector CurSocketOffset = CameraBoom->SocketOffset;
 	FVector TargetSocketOffset = (IsAiming()) ? AimSocketOffset : HipSocketOffset;
+	TargetSocketOffset.Z += TargetSocketOffsetZ;
 
 	CameraBoom->TargetArmLength = FMath::FInterpTo(CurArmLength, TargetArmLength, DeltaTime, AimInterpSpeed);
 	FollowCamera->SetFieldOfView(FMath::FInterpTo(CurFOV, TargetFOV, DeltaTime, AimInterpSpeed));
@@ -172,6 +181,10 @@ void AProjectAscentCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 		// Grappling Hook
 		EnhancedInputComponent->BindAction(GrappleAction, ETriggerEvent::Started, this, &AProjectAscentCharacter::OnGrapple);
 		EnhancedInputComponent->BindAction(UngrappleAction, ETriggerEvent::Started, this, &AProjectAscentCharacter::OnUngrapple);
+
+		// Crouching
+		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AProjectAscentCharacter::OnCrouchStarted);
+		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Completed, this, &AProjectAscentCharacter::OnCrouchEnded);
 	}
 	else
 	{
@@ -264,6 +277,16 @@ void AProjectAscentCharacter::OnUngrapple(const FInputActionValue& Value)
 	if (!IsValid(GrapplingHookComponent)) return;
 
 	GrapplingHookComponent->RetractHook();
+}
+
+void AProjectAscentCharacter::OnCrouchStarted(const FInputActionValue& Value)
+{
+	Crouch();
+}
+
+void AProjectAscentCharacter::OnCrouchEnded(const FInputActionValue& Value)
+{
+	UnCrouch();
 }
 
 bool AProjectAscentCharacter::IsAiming() const

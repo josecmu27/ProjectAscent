@@ -49,6 +49,8 @@ protected:
     void OnReload(const FInputActionValue& Value);
     void OnGrapple(const FInputActionValue& Value);
     void OnUngrapple(const FInputActionValue& Value);
+    void OnCrouchStarted(const FInputActionValue& Value);
+    void OnCrouchEnded(const FInputActionValue& Value);
 
     /* Components */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
@@ -97,12 +99,21 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
     UInputAction* UngrappleAction;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+    UInputAction* CrouchAction;
+
     /* ADS Settings*/
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
     float HipFireArmLength;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
     float AimArmLength;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
+    float CrouchArmOffset;
+
+    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
+    float StandArmOffset;
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
     float HipFireFOV;
@@ -118,6 +129,8 @@ private:
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
     FVector HipSocketOffset;
+
+
 
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
     float RecoilAmount;
