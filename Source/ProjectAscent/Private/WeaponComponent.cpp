@@ -12,10 +12,9 @@
 // Sets default values for this component's properties
 UWeaponComponent::UWeaponComponent()
 {
-	bCanFire = true;
-	CurState = EWeaponState::Idle;
-	CurBullets = 25;
-	ReserveBullets = 25;
+	CurrentState = EWeaponState::Idle;
+	CurrentAmmo = 25;
+	ReserveAmmo = 25;
 	FireRateTimerHandle;
 	ReloadTimerHandle;
 	WeaponData = nullptr;
@@ -27,14 +26,10 @@ void UWeaponComponent::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!IsValid(WeaponData))
-	{
-		return;
-	}
+	if (!IsValid(WeaponData)) return;
 
-	CurBullets = WeaponData->MagazineSize;
-	CurState = EWeaponState::Idle;
-	bCanFire = true;
+	CurrentAmmo = WeaponData->MagazineSize;
+	CurrentState = EWeaponState::Idle;
 }
 
 
@@ -44,16 +39,15 @@ void UWeaponComponent::BeginPlay()
 
 
 /*
-* @brief shoots Line Trace from TraceStart to TraceEnd,
-*		 applies Damage to Hit Actor if a hit occurs,
-*		 manages Weapon's current and reserved bullets
+* @brief shoots Line Trace(s) from TraceStart to TraceEnd based on weapon's projectiles per shot,
+*		 applies Damage to Hit Actor if a hit occurs, manages Weapon's current and reserved ammo,
+*		 and broadcast delegates
 * @param[in] TraceStart starting vector of Line Trace
 * @param[in] TraceEnd ending vector of Line Trace
 * 
 */
 void UWeaponComponent::Fire(FVector TraceStart, FVector TraceEnd)
 {
-	// Check if we can fire
 	if (!CanFire())
 	{
 		return;
@@ -66,42 +60,50 @@ void UWeaponComponent::Fire(FVector TraceStart, FVector TraceEnd)
 	}
 	
 	// Set Current State to Firing
-	CurState = EWeaponState::Firing;
-	bCanFire = false;
-	
-	// Shoot Line Trace
-	FHitResult Hit;
+	CurrentState = EWeaponState::Firing;
+	FVector BaseDirection = (TraceEnd - TraceStart).GetSafeNormal();
+
 	FCollisionQueryParams CollisionParams;
 	CollisionParams.AddIgnoredActor(GetOwner());
 
-	bool bHit = World->LineTraceSingleByChannel(Hit, TraceStart, TraceEnd, ECC_Weapon, CollisionParams);
 
-	// Broadcast Delegate
-	OnFireStarted.Broadcast();
-
-
-	// Check if Line Trace hits and apply damage to it via unreal's damage system
-	if (bHit && Hit.GetActor())
+	for (int32 i = 0; i < WeaponData->ProjectilesPerShot; i++)
 	{
+		FVector ProjectileDirection = FMath::VRandCone(BaseDirection, FMath::DegreesToRadians(WeaponData->SpreadAngle) * 0.5f);
+		FVector ProjectileTraceEnd = TraceStart + (ProjectileDirection * WeaponData->Range);
 
-		AActor* HitActor = Hit.GetActor();
+		FHitResult Hit;
 
-		FPointDamageEvent PointDamageEvent;
-		PointDamageEvent.HitInfo = Hit;
-		PointDamageEvent.ShotDirection = (TraceEnd - TraceStart).GetSafeNormal();
+		// Shoot Line Trace
+		bool bHit = World->LineTraceSingleByChannel(Hit, TraceStart, ProjectileTraceEnd, ECC_Weapon, CollisionParams);
 
-		AController* InstigatorController = GetOwner()->GetInstigatorController();
+		// Check if Line Trace hits and apply damage to it via unreal's damage system
+		if (bHit && Hit.GetActor())
+		{
+			AActor* HitActor = Hit.GetActor();
 
-		HitActor->TakeDamage(WeaponData->Damage, PointDamageEvent, InstigatorController, GetOwner());
-		
-		OnWeaponHit.Broadcast(Hit);
+			FPointDamageEvent PointDamageEvent;
+			PointDamageEvent.HitInfo = Hit;
+			PointDamageEvent.ShotDirection = ProjectileDirection;
+
+			AController* InstigatorController = GetOwner()->GetInstigatorController();
+
+			HitActor->TakeDamage(WeaponData->Damage, PointDamageEvent, InstigatorController, GetOwner());
+
+			OnWeaponHit.Broadcast(Hit);
+
+		}
 	}
 
-	// Decrease Current Bullet Count
-	CurBullets = FMath::Max(CurBullets - 1, 0);
-	
+	// Decrease Current Projectile Count
+	CurrentAmmo = FMath::Max(CurrentAmmo - 1, 0);
 
-	CurState = (CurBullets == 0) ? EWeaponState::Empty : EWeaponState::Idle;
+	CurrentState = (CurrentAmmo == 0) ? EWeaponState::Empty : EWeaponState::Firing;
+
+	// Broadcast Delegates
+	OnFireStarted.Broadcast(WeaponData->WeaponType); // Start player firing animation
+	OnAmmoUpdated.Broadcast(); // Update Weapon Ammo UI
+
 
 	// Set FireRateTimer
 	World->GetTimerManager().SetTimer(FireRateTimerHandle, this, &UWeaponComponent::OnFireRateTimerExpired, WeaponData->FireRate, false);
@@ -116,54 +118,45 @@ void UWeaponComponent::Fire(FVector TraceStart, FVector TraceEnd)
 void UWeaponComponent::Reload()
 {
 	// Check if we can reload
-	if (!CanReload())
-	{
-		return;
-	}
+	if (!CanReload()) return;
 
 	UWorld* World = GetWorld();
 
-	if (!IsValid(World) || !IsValid(WeaponData))
-	{
-		return;
-	}
+	if (!IsValid(World) || !IsValid(WeaponData)) return;
 
 	// Set Current State to Reloading
-	CurState = EWeaponState::Reloading;
-	bCanFire = false;
+	CurrentState = EWeaponState::Reloading;
 
-	// Decrease Bullet Reserve Count
-	int32 ReloadedBullets = (ReserveBullets >= WeaponData->MagazineSize) ? WeaponData->MagazineSize : ReserveBullets;
+	// Decrease Ammo Reserve Count
+	int32 ReloadedAmmo = (ReserveAmmo >= WeaponData->MagazineSize - CurrentAmmo) ? WeaponData->MagazineSize - CurrentAmmo : ReserveAmmo;
 
-	CurBullets = ReloadedBullets;
-	ReserveBullets -= ReloadedBullets;
+	CurrentAmmo += ReloadedAmmo;
+	ReserveAmmo -= ReloadedAmmo;
 
-	OnReloadStarted.Broadcast();
-
+	OnReloadStarted.Broadcast(WeaponData->WeaponType);
+	OnAmmoUpdated.Broadcast();
 
 	World->GetTimerManager().SetTimer(ReloadTimerHandle, this, &UWeaponComponent::OnReloadTimerExpired, WeaponData->ReloadTime, false);
 }
 
 void UWeaponComponent::OnFireRateTimerExpired()
 {
-	bCanFire = true;
-	CurState = EWeaponState::Idle;
+	CurrentState = EWeaponState::Idle;
 }
 
 void UWeaponComponent::OnReloadTimerExpired()
 {
-	bCanFire = true;
-	CurState = EWeaponState::Idle;
+	CurrentState = EWeaponState::Idle;
 }
 
 bool UWeaponComponent::CanFire() const
 {
-	return (bCanFire && CurState == EWeaponState::Idle && CurBullets > 0);
+	return (CurrentState == EWeaponState::Idle && CurrentAmmo > 0);
 }
 
 bool UWeaponComponent::CanReload() const
 {
-	return ReserveBullets > 0 && CurBullets < WeaponData->MagazineSize && CurState == EWeaponState::Idle;
+	return (ReserveAmmo > 0) && (CurrentAmmo< WeaponData->MagazineSize) && (CurrentState == EWeaponState::Idle);
 }
 
 
@@ -173,27 +166,41 @@ bool UWeaponComponent::CanReload() const
 ------------------------ Public Functions ---------------------------
 */////////////////////////////////////////////////////////////////////
 
-int32 UWeaponComponent::GetCurBullets() const
+int32 UWeaponComponent::GetCurrentAmmo() const
 {
-	return CurBullets;
-}
-
-int32 UWeaponComponent::GetReserveBullets() const
-{
-	return ReserveBullets;
+	return CurrentAmmo;
 }
 
 float UWeaponComponent::GetWeaponRange() const
 {
-	if (!IsValid(WeaponData))
-	{
-		return 0.0f;
-	}
+	if (!IsValid(WeaponData)) return 0.0f;
 
 	return WeaponData->Range;
 }
 
 EWeaponState UWeaponComponent::GetWeaponState() const
 {
-	return CurState;
+	return CurrentState;
+}
+
+UWeaponDataAsset* UWeaponComponent::GetWeaponData() const
+{
+	return WeaponData;
+}
+
+void UWeaponComponent::SetWeaponData(UWeaponDataAsset* NewWeaponData)
+{
+	WeaponData = NewWeaponData;
+}
+
+bool UWeaponComponent::AddReserveAmmo(int32 Amount)
+{
+	if (!IsValid(WeaponData)) return false;
+	if (ReserveAmmo >= WeaponData->MaxReserveAmmo) return false; // already full
+
+	ReserveAmmo = FMath::Min(ReserveAmmo + Amount, WeaponData->MaxReserveAmmo);
+
+	OnAmmoUpdated.Broadcast();
+
+	return true;
 }
