@@ -21,7 +21,7 @@ void ACyborgSoldier::Attack()
 void ACyborgSoldier::FireWeapon()
 {
 
-    if (WeaponComponent->GetCurBullets() == 0)
+    if (WeaponComponent->GetCurrentAmmo() == 0)
     {
         ReloadWeapon();
         return;
