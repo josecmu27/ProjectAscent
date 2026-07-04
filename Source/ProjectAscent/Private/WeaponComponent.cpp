@@ -39,9 +39,9 @@ void UWeaponComponent::BeginPlay()
 
 
 /*
-* @brief shoots Line Trace(s) from TraceStart to TraceEnd based on weapon's projectiles per shot,
-*		 applies Damage to Hit Actor if a hit occurs, manages Weapon's current and reserved ammo,
-*		 and broadcast delegates
+* @brief Shoots Line Trace(s) from TraceStart to TraceEnd based on weapon's projectiles per shot,
+*		 and applies Damage to Hit Actor if a hit occurs. Manages Weapon's current and reserved ammo,
+*		 and broadcast OnFireStarted and OnAmmoUpdated on success
 * @param[in] TraceStart starting vector of Line Trace
 * @param[in] TraceEnd ending vector of Line Trace
 * 
@@ -110,7 +110,8 @@ void UWeaponComponent::Fire(FVector TraceStart, FVector TraceEnd)
 }
 
 /*
-* @brief reloads weapon by filling current magazine with reserved bullets
+* @brief Reloads weapon based on reserve ammo and weapon magazine size. 
+*        Broadcasts OnReloadStarted and OnAmmoUpdated on success.
 * @param[in] TraceStart starting vector of Line Trace
 * @param[in] TraceEnd end vector of Line Trace
 *
@@ -124,17 +125,16 @@ void UWeaponComponent::Reload()
 
 	if (!IsValid(World) || !IsValid(WeaponData)) return;
 
-	// Set Current State to Reloading
 	CurrentState = EWeaponState::Reloading;
 
-	// Decrease Ammo Reserve Count
+	// Decrease Ammo Reserve 
 	int32 ReloadedAmmo = (ReserveAmmo >= WeaponData->MagazineSize - CurrentAmmo) ? WeaponData->MagazineSize - CurrentAmmo : ReserveAmmo;
 
 	CurrentAmmo += ReloadedAmmo;
 	ReserveAmmo -= ReloadedAmmo;
 
-	OnReloadStarted.Broadcast(WeaponData->WeaponType);
-	OnAmmoUpdated.Broadcast();
+	OnReloadStarted.Broadcast(WeaponData->WeaponType); // Start player reloading animation
+	OnAmmoUpdated.Broadcast(); // Update Weapon Ammo UI
 
 	World->GetTimerManager().SetTimer(ReloadTimerHandle, this, &UWeaponComponent::OnReloadTimerExpired, WeaponData->ReloadTime, false);
 }
