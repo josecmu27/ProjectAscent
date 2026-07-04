@@ -8,19 +8,12 @@ void AProjectAscentHUD::BeginPlay()
 {
 	Super::BeginPlay();
 
-	if (!IsValid(HealthBarWidgetClass) || !IsValid(CrosshairWidgetClass))
-	{
-		return;
-	}
-
-	HealthBarWidget = CreateWidget<UUserWidget>(GetOwningPlayerController(), HealthBarWidgetClass);
-	CrosshairWidget = CreateWidget<UUserWidget>(GetOwningPlayerController(), CrosshairWidgetClass);
-
-	if (!IsValid(HealthBarWidget) || !IsValid(CrosshairWidget))
-	{
-		return;
-	}
-
-	HealthBarWidget->AddToViewport();
-	CrosshairWidget->AddToViewport();
+    if (IsValid(HUDWidgetClass))
+    {
+        HUDWidget = CreateWidget<UUserWidget>(GetOwningPlayerController(), HUDWidgetClass);
+        if (IsValid(HUDWidget))
+        {
+            HUDWidget->AddToViewport();
+        }
+    }
 }

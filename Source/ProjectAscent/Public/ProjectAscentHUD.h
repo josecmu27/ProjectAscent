@@ -24,12 +24,18 @@ protected:
 	UPROPERTY(VisibleAnywhere, Category = "HUD")
 	UUserWidget* CrosshairWidget;
 
+	UPROPERTY()
+	UUserWidget* HUDWidget;
+
 private:
 	UPROPERTY(EditDefaultsOnly, Category="HealthBar")
 	TSubclassOf<UUserWidget> HealthBarWidgetClass;
 
 	UPROPERTY(EditDefaultsOnly, Category = "HUD")
 	TSubclassOf<UUserWidget> CrosshairWidgetClass;
+
+	UPROPERTY(EditDefaultsOnly, Category = "UI")
+	TSubclassOf<UUserWidget> HUDWidgetClass;
 
 
 };
