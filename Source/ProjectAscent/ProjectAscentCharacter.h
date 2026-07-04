@@ -7,6 +7,7 @@
 #include "Logging/LogMacros.h"
 #include "HealthComponent.h"
 #include "WeaponComponent.h"
+#include "InventoryComponent.h"
 #include "GrapplingHookComponent.h"
 #include "Components/StaticMeshComponent.h"
 #include "ProjectAscentCharacter.generated.h"
@@ -32,6 +33,20 @@ public:
     UFUNCTION(BlueprintPure, Category = "ADS")
     bool IsAiming() const;
 
+    UFUNCTION(BlueprintImplementableEvent, Category = "Weapon")
+    void OnWeaponFired(UAnimMontage* FireMontage, USoundBase* FireSound);
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Weapon")
+    void OnWeaponReloaded(UAnimMontage* ReloadMontage, USoundBase* ReloadSound);
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Weapon")
+    void OnWeaponHit(const FHitResult& HitResult);
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Weapon")
+    void OnActiveWeaponChanged();
+
+    UInventoryComponent* GetInventoryComponent() const { return InventoryComponent; }
+
     FORCEINLINE USpringArmComponent* GetCameraBoom() const { return CameraBoom; }
     FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 
@@ -51,16 +66,39 @@ protected:
     void OnUngrapple(const FInputActionValue& Value);
     void OnCrouchStarted(const FInputActionValue& Value);
     void OnCrouchEnded(const FInputActionValue& Value);
+    void OnSwitchWeapon(const FInputActionValue& Value);
 
     /* Components */
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
     UHealthComponent* HealthComponent;
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UWeaponComponent* WeaponComponent;
+    UGrapplingHookComponent* GrapplingHookComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Component")
+    UInventoryComponent* InventoryComponent;
+
+    /* Inventory Components*/
 
     UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
-    UGrapplingHookComponent* GrapplingHookComponent;
+    UStaticMeshComponent* HeldWeaponMeshComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UStaticMeshComponent* BackSlotOneMeshComponent;
+
+    UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
+    UStaticMeshComponent* BackSlotTwoMeshComponent;
+
+    /* Weapon Settings*/
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapons")
+    UWeaponDataAsset* DefaultWeaponOneData;
+
+    UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Weapons")
+    UWeaponDataAsset* DefaultWeaponTwoData;
+
+
+    UFUNCTION(BlueprintCallable, Category = "Weapons")
+    void UpdateWeaponMeshes();
 
 private:
 
@@ -102,6 +140,9 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
     UInputAction* CrouchAction;
 
+    UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Input", meta = (AllowPrivateAccess = "true"))
+    UInputAction* SwitchWeaponAction;
+
     /* ADS Settings*/
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
     float HipFireArmLength;
@@ -130,26 +171,11 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
     FVector HipSocketOffset;
 
-
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
-    float RecoilAmount;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
     float CurrentRecoil;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
-    float RecoilRecoverySpeed;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
-    float RecoilKickSpeed;
 
     float RecoilTimer;
 
     float TargetRecoil;
-
-    UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "ADS Settings", meta = (AllowPrivateAccess = "true"))
-    float RecoilRecoveryDelay;
 
     /* Movement Settings*/
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement", meta = (AllowPrivateAccess = "true"))
@@ -158,21 +184,23 @@ private:
     UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Movement", meta = (AllowPrivateAccess = "true"))
     float BaseWalkSpeed;
 
-    /* Weapon Settings*/
-
-    /* Animation */
-    UPROPERTY(EditDefaultsOnly, Category = "Animation")
-    UAnimMontage* ReloadMontage;
-
     /* States */
     bool bIsAiming;
 
     /* Delegate Handlers*/
     UFUNCTION()
-    void HandleReloadStarted();
+    void HandleReloadStarted(EWeaponType WeaponType);
 
     UFUNCTION()
-    void HandleFireStarted();
+    void HandleFireStarted(EWeaponType WeaponType);
 
+    UFUNCTION()
+    void HandleActiveWeaponChanged();
+
+    UFUNCTION()
+    void HandleWeaponHit(FHitResult HitResult);
+
+    UFUNCTION()
+    void HandleNewWeaponEquipped(UWeaponComponent* NewWeapon, EWeaponSlot Slot);
 };
 
