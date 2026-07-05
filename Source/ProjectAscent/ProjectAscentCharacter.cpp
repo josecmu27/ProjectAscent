@@ -57,8 +57,13 @@ AProjectAscentCharacter::AProjectAscentCharacter()
 	// are set in the derived blueprint asset named ThirdPersonCharacter (to avoid direct content references in C++)
 
 	HealthComponent = CreateDefaultSubobject<UHealthComponent>(TEXT("HealthComponent"));
-	WeaponComponent = CreateDefaultSubobject<UWeaponComponent>(TEXT("WeaponComponent"));
 	GrapplingHookComponent = CreateDefaultSubobject<UGrapplingHookComponent>(TEXT("GrapplingHookComponent"));
+	InventoryComponent = CreateDefaultSubobject<UInventoryComponent>(TEXT("InventoryComponent"));
+
+	
+	HeldWeaponMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("HeldWeaponMeshComponent"));
+	BackSlotOneMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BackSlotOneMeshComponent"));
+	BackSlotTwoMeshComponent = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("BackSlotTwoMeshComponent"));
 
 
 	// ADS Default Values
@@ -73,12 +78,8 @@ AProjectAscentCharacter::AProjectAscentCharacter()
 	AimInterpSpeed = 10.0f;
 	AimSocketOffset = FVector(0.0f, 80.0f, 20.0f);
 	HipSocketOffset = FVector(0.0f, 0.0f, 0.0f);
-	RecoilAmount = 0.5f;
 	RecoilTimer = 0.0f;
 	CurrentRecoil = 0.0f;
-	RecoilRecoverySpeed = 5.0f;
-	RecoilKickSpeed = 10.0f;
-	RecoilRecoveryDelay = 0.15f;
 
 	// Movement Default Values
 	AimWalkSpeed = 200.0f;
@@ -95,11 +96,34 @@ void AProjectAscentCharacter::BeginPlay()
 	// Call the base class  
 	Super::BeginPlay();
 
-	if (IsValid(WeaponComponent))
+	if (IsValid(HeldWeaponMeshComponent) && IsValid(BackSlotOneMeshComponent) && IsValid(BackSlotTwoMeshComponent))
 	{
-		WeaponComponent->OnReloadStarted.AddDynamic(this, &AProjectAscentCharacter::HandleReloadStarted);
-		WeaponComponent->OnFireStarted.AddDynamic(this, &AProjectAscentCharacter::HandleFireStarted);
+		HeldWeaponMeshComponent->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("Weapon_Socket"));
+		BackSlotOneMeshComponent->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("BackSlot_01"));
+		BackSlotTwoMeshComponent->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, FName("BackSlot_02"));
 	}
+
+	if (IsValid(InventoryComponent))
+	{
+		InventoryComponent->EquipNewWeapon(DefaultWeaponOneData, EWeaponSlot::SlotOne);
+		InventoryComponent->EquipNewWeapon(DefaultWeaponTwoData, EWeaponSlot::SlotTwo);
+
+		InventoryComponent->OnActiveWeaponFire.AddDynamic(this, &AProjectAscentCharacter::HandleFireStarted);
+		InventoryComponent->OnActiveWeaponReloadStarted.AddDynamic(this, &AProjectAscentCharacter::HandleReloadStarted);
+		InventoryComponent->OnActiveWeaponReloadCycle.AddDynamic(this, &AProjectAscentCharacter::HandleReloadCycle);
+		InventoryComponent->OnActiveWeaponReloadEnded.AddDynamic(this, &AProjectAscentCharacter::HandleReloadEnded);
+		InventoryComponent->OnActiveWeaponChanged.AddDynamic(this, &AProjectAscentCharacter::HandleActiveWeaponChanged);
+		InventoryComponent->OnNewWeaponEquipped.AddDynamic(this, &AProjectAscentCharacter::HandleNewWeaponEquipped);
+
+
+		UWeaponComponent* WeaponOne = InventoryComponent->GetWeaponAtSlot(EWeaponSlot::SlotOne);
+		UWeaponComponent* WeaponTwo = InventoryComponent->GetWeaponAtSlot(EWeaponSlot::SlotTwo);
+
+		if (IsValid(WeaponOne)) WeaponOne->OnWeaponHit.AddDynamic(this, &AProjectAscentCharacter::HandleWeaponHit);
+		if (IsValid(WeaponTwo)) WeaponTwo->OnWeaponHit.AddDynamic(this, &AProjectAscentCharacter::HandleWeaponHit);
+	}
+
+	UpdateWeaponMeshes();
 
 }
 
@@ -121,24 +145,68 @@ void AProjectAscentCharacter::Tick(float DeltaTime)
 	CameraBoom->TargetArmLength = FMath::FInterpTo(CurArmLength, TargetArmLength, DeltaTime, AimInterpSpeed);
 	FollowCamera->SetFieldOfView(FMath::FInterpTo(CurFOV, TargetFOV, DeltaTime, AimInterpSpeed));
 	CameraBoom->SocketOffset = FMath::VInterpTo(CurSocketOffset, TargetSocketOffset, DeltaTime, AimInterpSpeed);
+
+	if (!IsValid(InventoryComponent)) return;
+
+	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
+	if (!IsValid(ActiveWeapon) || !IsValid(ActiveWeapon->GetWeaponData())) return;
 	
 	// Move camera back down after recoil effects
 	if (RecoilTimer > 0.0f)
 	{
 		RecoilTimer -= DeltaTime;
 		float PreviousRecoil = CurrentRecoil;
-		CurrentRecoil = FMath::FInterpTo(CurrentRecoil, TargetRecoil , DeltaTime, RecoilKickSpeed);
+		CurrentRecoil = FMath::FInterpTo(CurrentRecoil, TargetRecoil , DeltaTime, ActiveWeapon->GetWeaponData()->RecoilKickSpeed);
 		AddControllerPitchInput(PreviousRecoil - CurrentRecoil);
 	}
 	else
 	{
 		float PreviousRecoil = CurrentRecoil;
-		CurrentRecoil = FMath::FInterpTo(CurrentRecoil, 0, DeltaTime, RecoilRecoverySpeed);
+		CurrentRecoil = FMath::FInterpTo(CurrentRecoil, 0, DeltaTime, ActiveWeapon->GetWeaponData()->RecoilRecoverySpeed);
 		AddControllerPitchInput(PreviousRecoil - CurrentRecoil);
 		TargetRecoil = 0.0f;
 		RecoilTimer = 0.0f;
 	}
 }
+
+/**
+ * @brief Synchronizes all three weapon mesh components with the current inventory state.
+ *        Called whenever the active weapon changes (OnActiveWeaponChanged) or a new
+ *        weapon is equipped (OnNewWeaponEquipped) to update visual representation
+ *		  based on inventory data.
+ *
+ *        Three mesh components are updated independently:
+ *        - HeldWeaponMeshComponent:  shows the active weapon in the player's hands
+ *        - BackSlotOneMeshComponent: shows SlotOne's weapon on the back (empty if active)
+ *        - BackSlotTwoMeshComponent: shows SlotTwo's weapon on the back (empty if active)
+ */
+void AProjectAscentCharacter::UpdateWeaponMeshes()
+{
+	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
+
+	if (IsValid(ActiveWeapon) && IsValid(ActiveWeapon->GetWeaponData()))
+	{
+		HeldWeaponMeshComponent->SetStaticMesh(ActiveWeapon->GetWeaponData()->WeaponMesh);
+	}
+	else
+	{
+		HeldWeaponMeshComponent->SetStaticMesh(nullptr);
+	}
+
+	UWeaponComponent* WeaponOne = InventoryComponent->GetWeaponAtSlot(EWeaponSlot::SlotOne);
+	UWeaponComponent* WeaponTwo = InventoryComponent->GetWeaponAtSlot(EWeaponSlot::SlotTwo);
+
+	auto GetBackSlotMesh = [&](UWeaponComponent* Weapon) -> UStaticMesh*
+		{
+			if (Weapon != ActiveWeapon && IsValid(Weapon) && IsValid(Weapon->GetWeaponData()))
+				return Weapon->GetWeaponData()->WeaponMesh;
+			return nullptr;
+		};
+
+	BackSlotOneMeshComponent->SetStaticMesh(GetBackSlotMesh(WeaponOne));
+	BackSlotTwoMeshComponent->SetStaticMesh(GetBackSlotMesh(WeaponTwo));
+}
+
 
   ////////////////////////////////////////////////////////////////////
  //							 Input                                 // 
@@ -185,6 +253,9 @@ void AProjectAscentCharacter::SetupPlayerInputComponent(UInputComponent* PlayerI
 		// Crouching
 		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &AProjectAscentCharacter::OnCrouchStarted);
 		EnhancedInputComponent->BindAction(CrouchAction, ETriggerEvent::Completed, this, &AProjectAscentCharacter::OnCrouchEnded);
+
+		// Switch Weapon
+		EnhancedInputComponent->BindAction(SwitchWeaponAction, ETriggerEvent::Started, this, &AProjectAscentCharacter::OnSwitchWeapon);
 	}
 	else
 	{
@@ -243,24 +314,24 @@ void AProjectAscentCharacter::OnAimEnded(const FInputActionValue& Value)
 
 void AProjectAscentCharacter::OnFire(const FInputActionValue& Value)
 {
-	if (!IsValid(WeaponComponent) || !IsValid(FollowCamera))
-	{
-		return;
-	}
+	if (!IsValid(InventoryComponent)) return;
+	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
+
+	if (!IsValid(ActiveWeapon) || !IsValid(FollowCamera)) return;
 
 	FVector TraceStart = FollowCamera->GetComponentLocation();
-	FVector TraceEnd = TraceStart + (FollowCamera->GetForwardVector() * WeaponComponent->GetWeaponRange());
-	WeaponComponent->Fire(TraceStart, TraceEnd);
+	FVector TraceEnd = TraceStart + (FollowCamera->GetForwardVector() * ActiveWeapon->GetWeaponRange());
+	ActiveWeapon->Fire(TraceStart, TraceEnd);
 }
 
 void AProjectAscentCharacter::OnReload(const FInputActionValue& Value)
 {
-	if (!IsValid(WeaponComponent))
-	{
-		return;
-	}
+	if (!IsValid(InventoryComponent)) return;
+	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
 
-	WeaponComponent->Reload();
+	if (!IsValid(ActiveWeapon)) return;
+
+	ActiveWeapon->Reload();
 }
 
 void AProjectAscentCharacter::OnGrapple(const FInputActionValue& Value)
@@ -289,6 +360,14 @@ void AProjectAscentCharacter::OnCrouchEnded(const FInputActionValue& Value)
 	UnCrouch();
 }
 
+void AProjectAscentCharacter::OnSwitchWeapon(const FInputActionValue& Value)
+{
+	if (IsValid(InventoryComponent))
+	{
+		InventoryComponent->SwitchWeapon();
+	}
+}
+
 bool AProjectAscentCharacter::IsAiming() const
 {
 	return bIsAiming;
@@ -298,13 +377,59 @@ bool AProjectAscentCharacter::IsAiming() const
 ////////////////////////////////////////////////////////////////////
 //							Delegate Handlers                     // 
 ////////////////////////////////////////////////////////////////////
-void AProjectAscentCharacter::HandleReloadStarted()
+
+void AProjectAscentCharacter::HandleReloadStarted(EWeaponType WeaponType)
 {
-	PlayAnimMontage(ReloadMontage);
+	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
+	if (!IsValid(ActiveWeapon) || !IsValid(ActiveWeapon->GetWeaponData())) return;
+
+	OnWeaponReloadStarted(ActiveWeapon->GetWeaponData()->ReloadStartMontage, ActiveWeapon->GetWeaponData()->ReloadSound);
 }
 
-void AProjectAscentCharacter::HandleFireStarted()
+void AProjectAscentCharacter::HandleReloadEnded(EWeaponType WeaponType)
 {
-	TargetRecoil = CurrentRecoil + RecoilAmount;
-	RecoilTimer = RecoilRecoveryDelay;
+	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
+	if (!IsValid(ActiveWeapon) || !IsValid(ActiveWeapon->GetWeaponData())) return;
+
+	OnWeaponReloadEnded(ActiveWeapon->GetWeaponData()->ReloadEndMontage);
+}
+
+void AProjectAscentCharacter::HandleFireStarted(EWeaponType WeaponType)
+{
+	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
+	if (!IsValid(ActiveWeapon) || !IsValid(ActiveWeapon->GetWeaponData())) return;
+
+	UWeaponDataAsset* WeaponData = ActiveWeapon->GetWeaponData();
+	TargetRecoil = CurrentRecoil + WeaponData->RecoilAmount;
+	RecoilTimer = WeaponData->RecoilRecoveryDelay;
+
+	OnWeaponFired(WeaponData->FireMontage, WeaponData->FireSound);
+}
+
+void AProjectAscentCharacter::HandleActiveWeaponChanged()
+{
+	UpdateWeaponMeshes();
+	OnActiveWeaponChanged();
+}
+
+void AProjectAscentCharacter::HandleWeaponHit(FHitResult HitResult)
+{
+	OnWeaponHit(HitResult);
+}
+
+void AProjectAscentCharacter::HandleNewWeaponEquipped(UWeaponComponent* NewWeapon, EWeaponSlot Slot)
+{
+	if (IsValid(NewWeapon))
+	{
+		NewWeapon->OnWeaponHit.AddDynamic(this, &AProjectAscentCharacter::HandleWeaponHit);
+	}
+
+	UpdateWeaponMeshes();
+}
+
+void AProjectAscentCharacter::HandleReloadCycle(EWeaponType WeaponType)
+{
+	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
+	if (!IsValid(ActiveWeapon) || !IsValid(ActiveWeapon->GetWeaponData())) return;
+	OnWeaponReloadCycle(ActiveWeapon->GetWeaponData()->ReloadCycleMontage, ActiveWeapon->GetWeaponData()->ReloadSound);
 }

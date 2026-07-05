@@ -6,7 +6,9 @@
 #include "Components/ActorComponent.h"
 #include "WeaponDataAsset.h"
 #include "Equippable.h"
+#include "WeaponTypes.h"
 #include "WeaponComponent.generated.h"
+
 
 UENUM(BlueprintType)
 enum class EWeaponState : uint8
@@ -17,9 +19,12 @@ enum class EWeaponState : uint8
 	Empty		UMETA(DisplayName = "Empty")
 };
 
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnReloadStarted);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnFireStarted);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFireStarted, EWeaponType, WeaponType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnReloadStarted, EWeaponType, WeaponType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnReloadCycleStarted, EWeaponType, WeaponType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnReloadEnded, EWeaponType, WeaponType);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponHit, FHitResult, Hit);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAmmoUpdated);
 
 UCLASS(ClassGroup = (Custom), meta = (BlueprintSpawnableComponent))
 class PROJECTASCENT_API UWeaponComponent : public UActorComponent, public IEquippable
@@ -31,16 +36,22 @@ public:
 	UWeaponComponent();
 
 	UFUNCTION(BlueprintPure, Category = "Weapon")
-	int32 GetCurBullets() const;
-
-	UFUNCTION(BlueprintPure, Category = "Weapon")
-	int32 GetReserveBullets() const;
+	int32 GetCurrentAmmo() const;
 
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	float GetWeaponRange() const;
 
 	UFUNCTION(BlueprintPure, Category = "Weapon")
 	EWeaponState GetWeaponState() const;
+
+	UFUNCTION(BlueprintPure, Category = "Weapon")
+	UWeaponDataAsset* GetWeaponData() const;
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	void SetWeaponData(UWeaponDataAsset* NewWeaponData);
+
+	UFUNCTION(BlueprintCallable, Category = "Weapon")
+	bool AddReserveAmmo(int32 Amount);
 
 	UFUNCTION(BlueprintCallable, Category = "Weapon")
 	void Fire(FVector TraceStart, FVector TraceEnd);
@@ -52,10 +63,19 @@ public:
 	FOnReloadStarted OnReloadStarted;
 
 	UPROPERTY(BlueprintAssignable, Category = "Weapon")
+	FOnReloadStarted OnReloadCycleStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Weapon")
+	FOnReloadEnded OnReloadEnded;
+
+	UPROPERTY(BlueprintAssignable, Category = "Weapon")
 	FOnFireStarted OnFireStarted;
 
 	UPROPERTY(BlueprintAssignable, Category = "Weapon")
 	FOnWeaponHit OnWeaponHit;
+
+	UPROPERTY(BlueprintAssignable, Category = "Ammo")
+	FOnAmmoUpdated OnAmmoUpdated;
 
 protected:
 	// Called when the game starts
@@ -63,16 +83,13 @@ protected:
 
 private:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
-	bool bCanFire;
+	EWeaponState CurrentState;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
-	EWeaponState CurState;
+	int32 CurrentAmmo;
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
-	int32 CurBullets;
-
-	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowPrivateAccess = "true"))
-	int32 ReserveBullets;
+	int32 ReserveAmmo;
 
 	FTimerHandle FireRateTimerHandle;
 	FTimerHandle ReloadTimerHandle;
@@ -84,7 +101,7 @@ private:
 	void OnFireRateTimerExpired();
 
 	UFUNCTION()
-	void OnReloadTimerExpired();
+	void OnReloadCycle();
 
 	bool CanFire() const;
 
