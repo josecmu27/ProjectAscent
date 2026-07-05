@@ -9,7 +9,9 @@
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnActiveWeaponChanged);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActiveWeaponFire, EWeaponType, WeaponType);
-DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActiveWeaponReload, EWeaponType, WeaponType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActiveWeaponReloadStarted, EWeaponType, WeaponType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActiveWeaponReloadEnded, EWeaponType, WeaponType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnActiveWeaponReloadCycle, EWeaponType, WeaponType);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FOnNewWeaponEquipped, UWeaponComponent*, NewWeapon, EWeaponSlot, Slot);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnInventoryUpdated);
 
@@ -56,7 +58,13 @@ public:
 	FOnActiveWeaponFire OnActiveWeaponFire;
 
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
-	FOnActiveWeaponReload OnActiveWeaponReload;
+	FOnActiveWeaponReloadStarted OnActiveWeaponReloadStarted;
+
+	UPROPERTY(BlueprintAssignable)
+	FOnActiveWeaponReloadCycle OnActiveWeaponReloadCycle;
+
+	UPROPERTY(BlueprintAssignable, Category = "Inventory")
+	FOnActiveWeaponReloadStarted OnActiveWeaponReloadEnded;
 
 	UPROPERTY(BlueprintAssignable, Category = "Inventory")
 	FOnNewWeaponEquipped OnNewWeaponEquipped;
@@ -83,9 +91,16 @@ private:
 	void HandleActiveWeaponFire(EWeaponType WeaponType);
 
 	UFUNCTION()
-	void HandleActiveWeaponReload(EWeaponType WeaponType);
+	void HandleActiveWeaponReloadStarted(EWeaponType WeaponType);
+
+	UFUNCTION()
+	void HandleActiveWeaponReloadCycle(EWeaponType WeaponType);
+
+	UFUNCTION()
+	void HandleActiveWeaponReloadEnded(EWeaponType WeaponType);
 
 	UFUNCTION()
 	void HandleInventoryUpdate();
+
 
 };

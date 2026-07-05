@@ -109,7 +109,9 @@ void AProjectAscentCharacter::BeginPlay()
 		InventoryComponent->EquipNewWeapon(DefaultWeaponTwoData, EWeaponSlot::SlotTwo);
 
 		InventoryComponent->OnActiveWeaponFire.AddDynamic(this, &AProjectAscentCharacter::HandleFireStarted);
-		InventoryComponent->OnActiveWeaponReload.AddDynamic(this, &AProjectAscentCharacter::HandleReloadStarted);
+		InventoryComponent->OnActiveWeaponReloadStarted.AddDynamic(this, &AProjectAscentCharacter::HandleReloadStarted);
+		InventoryComponent->OnActiveWeaponReloadCycle.AddDynamic(this, &AProjectAscentCharacter::HandleReloadCycle);
+		InventoryComponent->OnActiveWeaponReloadEnded.AddDynamic(this, &AProjectAscentCharacter::HandleReloadEnded);
 		InventoryComponent->OnActiveWeaponChanged.AddDynamic(this, &AProjectAscentCharacter::HandleActiveWeaponChanged);
 		InventoryComponent->OnNewWeaponEquipped.AddDynamic(this, &AProjectAscentCharacter::HandleNewWeaponEquipped);
 
@@ -381,7 +383,15 @@ void AProjectAscentCharacter::HandleReloadStarted(EWeaponType WeaponType)
 	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
 	if (!IsValid(ActiveWeapon) || !IsValid(ActiveWeapon->GetWeaponData())) return;
 
-	OnWeaponReloaded(ActiveWeapon->GetWeaponData()->ReloadMontage, ActiveWeapon->GetWeaponData()->ReloadSound);
+	OnWeaponReloadStarted(ActiveWeapon->GetWeaponData()->ReloadStartMontage, ActiveWeapon->GetWeaponData()->ReloadSound);
+}
+
+void AProjectAscentCharacter::HandleReloadEnded(EWeaponType WeaponType)
+{
+	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
+	if (!IsValid(ActiveWeapon) || !IsValid(ActiveWeapon->GetWeaponData())) return;
+
+	OnWeaponReloadEnded(ActiveWeapon->GetWeaponData()->ReloadEndMontage);
 }
 
 void AProjectAscentCharacter::HandleFireStarted(EWeaponType WeaponType)
@@ -415,4 +425,11 @@ void AProjectAscentCharacter::HandleNewWeaponEquipped(UWeaponComponent* NewWeapo
 	}
 
 	UpdateWeaponMeshes();
+}
+
+void AProjectAscentCharacter::HandleReloadCycle(EWeaponType WeaponType)
+{
+	UWeaponComponent* ActiveWeapon = InventoryComponent->GetActiveWeapon();
+	if (!IsValid(ActiveWeapon) || !IsValid(ActiveWeapon->GetWeaponData())) return;
+	OnWeaponReloadCycle(ActiveWeapon->GetWeaponData()->ReloadCycleMontage, ActiveWeapon->GetWeaponData()->ReloadSound);
 }

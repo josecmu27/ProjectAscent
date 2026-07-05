@@ -21,6 +21,8 @@ enum class EWeaponState : uint8
 
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnFireStarted, EWeaponType, WeaponType);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnReloadStarted, EWeaponType, WeaponType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnReloadCycleStarted, EWeaponType, WeaponType);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnReloadEnded, EWeaponType, WeaponType);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FOnWeaponHit, FHitResult, Hit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnAmmoUpdated);
 
@@ -61,6 +63,12 @@ public:
 	FOnReloadStarted OnReloadStarted;
 
 	UPROPERTY(BlueprintAssignable, Category = "Weapon")
+	FOnReloadStarted OnReloadCycleStarted;
+
+	UPROPERTY(BlueprintAssignable, Category = "Weapon")
+	FOnReloadEnded OnReloadEnded;
+
+	UPROPERTY(BlueprintAssignable, Category = "Weapon")
 	FOnFireStarted OnFireStarted;
 
 	UPROPERTY(BlueprintAssignable, Category = "Weapon")
@@ -93,7 +101,7 @@ private:
 	void OnFireRateTimerExpired();
 
 	UFUNCTION()
-	void OnReloadTimerExpired();
+	void OnReloadCycle();
 
 	bool CanFire() const;
 

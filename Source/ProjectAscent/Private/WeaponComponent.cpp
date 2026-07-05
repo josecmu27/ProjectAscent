@@ -48,16 +48,18 @@ void UWeaponComponent::BeginPlay()
 */
 void UWeaponComponent::Fire(FVector TraceStart, FVector TraceEnd)
 {
-	if (!CanFire())
+	// Interrupt reload if mid-reload, allow firing to cancel reloading
+	if (CurrentState == EWeaponState::Reloading)
 	{
-		return;
+		GetWorld()->GetTimerManager().ClearTimer(ReloadTimerHandle);
+		CurrentState = EWeaponState::Idle;
 	}
 
+	if (!CanFire()) return;
+
 	UWorld* World = GetWorld();
-	if (!IsValid(World) || !IsValid(WeaponData))
-	{
-		return;
-	}
+
+	if (!IsValid(World) || !IsValid(WeaponData)) return;
 	
 	// Set Current State to Firing
 	CurrentState = EWeaponState::Firing;
@@ -118,25 +120,18 @@ void UWeaponComponent::Fire(FVector TraceStart, FVector TraceEnd)
 */
 void UWeaponComponent::Reload()
 {
-	// Check if we can reload
 	if (!CanReload()) return;
 
-	UWorld* World = GetWorld();
-
-	if (!IsValid(World) || !IsValid(WeaponData)) return;
-
 	CurrentState = EWeaponState::Reloading;
+	OnReloadStarted.Broadcast(WeaponData->WeaponType);
 
-	// Decrease Ammo Reserve 
-	int32 ReloadedAmmo = (ReserveAmmo >= WeaponData->MagazineSize - CurrentAmmo) ? WeaponData->MagazineSize - CurrentAmmo : ReserveAmmo;
-
-	CurrentAmmo += ReloadedAmmo;
-	ReserveAmmo -= ReloadedAmmo;
-
-	OnReloadStarted.Broadcast(WeaponData->WeaponType); // Start player reloading animation
-	OnAmmoUpdated.Broadcast(); // Update Weapon Ammo UI
-
-	World->GetTimerManager().SetTimer(ReloadTimerHandle, this, &UWeaponComponent::OnReloadTimerExpired, WeaponData->ReloadTime, false);
+	GetWorld()->GetTimerManager().SetTimer(
+		ReloadTimerHandle,
+		this,
+		&UWeaponComponent::OnReloadCycle,
+		WeaponData->ReloadCycleRate,
+		true  // loop stops when full or out of reserve
+	);
 }
 
 void UWeaponComponent::OnFireRateTimerExpired()
@@ -144,9 +139,24 @@ void UWeaponComponent::OnFireRateTimerExpired()
 	CurrentState = EWeaponState::Idle;
 }
 
-void UWeaponComponent::OnReloadTimerExpired()
+void UWeaponComponent::OnReloadCycle()
 {
-	CurrentState = EWeaponState::Idle;
+	int32 AmmoNeeded = WeaponData->MagazineSize - CurrentAmmo;
+	int32 AmmoReloaded = FMath::Min3(AmmoNeeded, ReserveAmmo, WeaponData->AmmoReloadedPerCycle);
+	
+	CurrentAmmo += AmmoReloaded;
+	ReserveAmmo -= AmmoReloaded;
+
+	OnReloadCycleStarted.Broadcast(WeaponData->WeaponType);
+	OnAmmoUpdated.Broadcast();
+
+	// Stop looping when full or out of reserve ammo
+	if (CurrentAmmo >= WeaponData->MagazineSize || ReserveAmmo <= 0)
+	{
+		GetWorld()->GetTimerManager().ClearTimer(ReloadTimerHandle);
+		CurrentState = EWeaponState::Idle;
+		OnReloadEnded.Broadcast(WeaponData->WeaponType);
+	}
 }
 
 bool UWeaponComponent::CanFire() const
@@ -156,7 +166,7 @@ bool UWeaponComponent::CanFire() const
 
 bool UWeaponComponent::CanReload() const
 {
-	return (ReserveAmmo > 0) && (CurrentAmmo< WeaponData->MagazineSize) && (CurrentState == EWeaponState::Idle);
+	return (ReserveAmmo > 0) && (CurrentAmmo < WeaponData->MagazineSize) && (CurrentState == EWeaponState::Idle);
 }
 
 

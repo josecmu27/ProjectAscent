@@ -96,7 +96,9 @@ void UInventoryComponent::SetWeaponAtSlot(UWeaponComponent* WeaponComponent, EWe
     if (IsValid(WeaponComponent))
     {
         WeaponComponent->OnFireStarted.AddDynamic(this, &UInventoryComponent::HandleActiveWeaponFire);
-        WeaponComponent->OnReloadStarted.AddDynamic(this, &UInventoryComponent::HandleActiveWeaponReload);
+        WeaponComponent->OnReloadStarted.AddDynamic(this, &UInventoryComponent::HandleActiveWeaponReloadStarted);
+        WeaponComponent->OnReloadCycleStarted.AddDynamic(this, &UInventoryComponent::HandleActiveWeaponReloadCycle);
+        WeaponComponent->OnReloadEnded.AddDynamic(this, &UInventoryComponent::HandleActiveWeaponReloadEnded);
         WeaponComponent->OnAmmoUpdated.AddDynamic(this, &UInventoryComponent::HandleInventoryUpdate);
     }
 }
@@ -156,12 +158,24 @@ void UInventoryComponent::HandleActiveWeaponFire(EWeaponType WeaponType)
     OnActiveWeaponFire.Broadcast(WeaponType);
 }
 
-void UInventoryComponent::HandleActiveWeaponReload(EWeaponType WeaponType)
+void UInventoryComponent::HandleActiveWeaponReloadStarted(EWeaponType WeaponType)
 {
-    OnActiveWeaponReload.Broadcast(WeaponType);
+    OnActiveWeaponReloadStarted.Broadcast(WeaponType);
 }
+
+void UInventoryComponent::HandleActiveWeaponReloadCycle(EWeaponType WeaponType)
+{
+    OnActiveWeaponReloadCycle.Broadcast(WeaponType);
+}
+
+void UInventoryComponent::HandleActiveWeaponReloadEnded(EWeaponType WeaponType)
+{
+    OnActiveWeaponReloadEnded.Broadcast(WeaponType);
+}
+
 
 void UInventoryComponent::HandleInventoryUpdate()
 {
     OnInventoryUpdated.Broadcast();
 }
+

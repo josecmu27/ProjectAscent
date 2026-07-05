@@ -37,7 +37,13 @@ public:
     void OnWeaponFired(UAnimMontage* FireMontage, USoundBase* FireSound);
 
     UFUNCTION(BlueprintImplementableEvent, Category = "Weapon")
-    void OnWeaponReloaded(UAnimMontage* ReloadMontage, USoundBase* ReloadSound);
+    void OnWeaponReloadStarted(UAnimMontage* ReloadMontage, USoundBase* ReloadSound);
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Weapon")
+    void OnWeaponReloadCycle(UAnimMontage* ReloadCycleMontage, USoundBase* ReloadSound);
+
+    UFUNCTION(BlueprintImplementableEvent, Category = "Weapon")
+    void OnWeaponReloadEnded(UAnimMontage* ReloadEndMontage);
 
     UFUNCTION(BlueprintImplementableEvent, Category = "Weapon")
     void OnWeaponHit(const FHitResult& HitResult);
@@ -192,6 +198,12 @@ private:
     void HandleReloadStarted(EWeaponType WeaponType);
 
     UFUNCTION()
+    void HandleReloadCycle(EWeaponType WeaponType);
+
+    UFUNCTION()
+    void HandleReloadEnded(EWeaponType WeaponType);
+
+    UFUNCTION()
     void HandleFireStarted(EWeaponType WeaponType);
 
     UFUNCTION()
@@ -202,5 +214,6 @@ private:
 
     UFUNCTION()
     void HandleNewWeaponEquipped(UWeaponComponent* NewWeapon, EWeaponSlot Slot);
+
 };
 
