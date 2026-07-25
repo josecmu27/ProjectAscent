@@ -16,6 +16,13 @@ class PROJECTASCENT_API UEnemyDataAsset : public UDataAsset
 	GENERATED_BODY()
 
 public:
+	/* Token Subsystem */
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Token Subsystem")
+	float WaitWeight;
+
+	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Token Subsystem")
+	float PositionWeight;
+
 
 	/* Perception */
 	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Combat")
