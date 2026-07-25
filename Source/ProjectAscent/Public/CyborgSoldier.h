@@ -19,7 +19,12 @@ public:
 
 	ACyborgSoldier();
 
+	
 	void Attack() override;
+
+	bool CanAttack() const override;
+
+	float GetAttackRange() const override;
 
 	UFUNCTION()
 	void FireWeapon();
@@ -27,8 +32,11 @@ public:
 	UFUNCTION()
 	void ReloadWeapon();
 
+	bool IsReloading() const;
+
 private:
 	/* Components */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components", meta = (AllowPrivateAccess = "true"))
 	UWeaponComponent* WeaponComponent;
+
 };

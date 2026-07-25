@@ -5,6 +5,7 @@
 #include "CyborgSoldierController.h"
 #include "DrawDebugHelpers.h"
 #include "Components/CapsuleComponent.h"
+#include <CombatTokenSubsystem.h>
 
 
 
@@ -17,6 +18,19 @@ void ACyborgSoldier::Attack()
 {
     FireWeapon();
 }
+
+bool ACyborgSoldier::CanAttack() const
+{
+    return !IsReloading();
+}
+
+float ACyborgSoldier::GetAttackRange() const
+{
+    if (!IsValid(WeaponComponent) || !IsValid(WeaponComponent->GetWeaponData())) return 0.0f;
+
+    return WeaponComponent->GetWeaponData()->Range;
+}
+
 
 void ACyborgSoldier::FireWeapon()
 {
@@ -37,4 +51,10 @@ void ACyborgSoldier::FireWeapon()
 void ACyborgSoldier::ReloadWeapon()
 {
     WeaponComponent->Reload();
+}
+
+
+bool ACyborgSoldier::IsReloading() const
+{
+    return WeaponComponent && WeaponComponent->GetWeaponState() == EWeaponState::Reloading;
 }
