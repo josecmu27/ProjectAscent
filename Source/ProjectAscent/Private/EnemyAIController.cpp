@@ -139,3 +139,28 @@ void AEnemyAIController::ResetSightRadius()
     SightConfig->LoseSightRadius = SightConfig->SightRadius + Enemy->GetDataAsset()->LoseSightOffset;
     GetPerceptionComponent()->RequestStimuliListenerUpdate();
 }
+
+/* ---------------- BLACKBOARD FUNCTIONS ---------------*/
+AActor* AEnemyAIController::GetTargetActor() const
+{
+    return GetBlackboardComponent() ? Cast<AActor>(GetBlackboardComponent()->GetValueAsObject("TargetActor")) : nullptr;
+}
+
+bool AEnemyAIController::GetCanSeePlayer() const
+{
+    return GetBlackboardComponent() && GetBlackboardComponent()->GetValueAsBool("bCanSeePlayer");
+}
+
+void AEnemyAIController::SetCombatToken(bool bHasToken)
+{
+    if (UBlackboardComponent* BB = GetBlackboardComponent())
+    {
+        BB->SetValueAsBool("bHasCombatToken", bHasToken);
+    }
+}
+
+bool AEnemyAIController::GetHasCombatToken() const
+{
+    return GetBlackboardComponent() && GetBlackboardComponent()->GetValueAsBool("bHasCombatToken");
+}
+
