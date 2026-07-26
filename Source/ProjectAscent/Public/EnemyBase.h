@@ -7,6 +7,7 @@
 #include "HealthComponent.h"
 #include "Grappable.h"
 #include "EnemyDataAsset.h"
+#include "CombatRoleSubsystem.h"
 #include "EnemyBase.generated.h"
 
 UCLASS()
@@ -15,53 +16,74 @@ class PROJECTASCENT_API AEnemyBase : public ACharacter, public IGrappable
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this character's properties
 	AEnemyBase();
 
-	/* Grappable Interface */
+	/* ---------- Grappable Interface ---------- */
 	virtual void GrapplePull_Implementation(float Magnitude, FVector PlayerLocation) override;
-
 	virtual void GrapplePullCancel_Implementation() override;
 
-	UFUNCTION()
+
+	/* ---------- Attack Virtual Functions ---------- */
 	virtual void Attack();
+	virtual bool CanAttack() const;
+	virtual float GetAttackRange() const;
 
-	UEnemyDataAsset* GetDataAsset() const;
 
+	/* ---------- Token Subsystem Functions ---------- */
+	virtual float GetTokenPriorityScore(float WaitTime) const;
+	virtual void AcceptToken();
+	virtual void ClearToken();
+	virtual void SurrenderToken();
+
+
+	/* ---------- Combat Role ---------- */
+	ECombatRole GetCombatRole() const { return CombatRole; }
+	void SetCombatRole(ECombatRole NewCombatRole) { CombatRole = NewCombatRole; }
+
+
+	/* ---------- Aiming ---------- */
 	UFUNCTION(BlueprintCallable)
 	void SetIsAiming(bool bNewIsAiming) { bIsAiming = bNewIsAiming; }
 
 	UFUNCTION(BlueprintCallable)
 	bool GetIsAiming() const { return bIsAiming; }
 
+
+	/* ---------- Data / Death ---------- */
+	UFUNCTION(BlueprintCallable)
+	UEnemyDataAsset* GetDataAsset() const;
+
 	UFUNCTION(BlueprintNativeEvent, Category = "Enemy")
 	void OnEnemyDeath();
-
 	virtual void OnEnemyDeath_Implementation();
 
+
+	/* ---------- Aim -------------*/
 	UPROPERTY(BlueprintReadOnly, Category = "Combat")
 	FRotator AimRotation;
 
-
 protected:
-	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
-	/* Components */
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Components")
 	UHealthComponent* HealthComponent;
 
-	/* Data Asset*/
 	UPROPERTY(EditDefaultsOnly, BlueprintReadWrite)
 	UEnemyDataAsset* EnemyData;
 
+	/* ---------- Token priority scoring ---------- */
+	virtual float GetReadinessScore() const;
+
 private:
-	
-	/* Delegate Handlers */
 	UFUNCTION()
 	void HandleDeath();
 
 	UPROPERTY(VisibleAnywhere)
 	bool bIsAiming;
 
+	UPROPERTY(VisibleAnywhere, meta = (AllowPrivateAccess = "true"))
+	ECombatRole CombatRole;
+
+	float GetEngagerReadinessScore() const;
+	float GetDefenderReadinessScore() const;
 };

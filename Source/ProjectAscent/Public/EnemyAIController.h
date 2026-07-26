@@ -30,6 +30,18 @@ public:
 	UFUNCTION()
 	void ResetSightRadius();
 
+	/* ------ Blackboard Functions ------ */
+	UFUNCTION()
+	AActor* GetTargetActor() const;
+
+	UFUNCTION()
+	bool GetCanSeePlayer() const;
+
+	UFUNCTION()
+	bool GetHasCombatToken() const;
+
+	UFUNCTION()
+	void SetCombatToken(bool bHasToken);
 
 protected:
 
